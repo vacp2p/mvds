@@ -1,9 +1,10 @@
 package transport
 
-import "github.com/ethereum/go-ethereum/whisper/whisperv6"
+import whisper "github.com/ethereum/go-ethereum/whisper/whisperv6"
 
 type WhisperNode struct {
-	whisper whisperv6.Whisper
+	whisper whisper.Whisper
+	topic   whisper.TopicType
 }
 
 func NewWhisperNode() *WhisperNode {
@@ -15,5 +16,5 @@ func (n *WhisperNode) Watch() {
 }
 
 func (n *WhisperNode) SendMessage(senderId []byte, to []byte, message []byte) {
-	// n.whisper.Send()
+	//n.whisper.Send()
 }
