@@ -24,7 +24,7 @@ func (n *WhisperNode) SendMessage(senderId []byte, to []byte, message []byte) er
 		Topic:    n.topic,
 		WorkTime: 0,
 		PoW:      0,
-		Payload:  nil,
+		Payload:  message,
 		Padding:  nil,
 	}) // @todo
 
