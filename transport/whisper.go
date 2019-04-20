@@ -21,7 +21,7 @@ func (n *WhisperNode) SendMessage(senderId []byte, to []byte, message []byte) er
 		Src:      nil,
 		Dst:      nil,
 		KeySym:   nil,
-		Topic:    whisper.TopicType{},
+		Topic:    n.topic,
 		WorkTime: 0,
 		PoW:      0,
 		Payload:  nil,
