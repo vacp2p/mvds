@@ -17,7 +17,7 @@ func (n *WhisperNode) Watch() {
 
 func (n *WhisperNode) SendMessage(senderId []byte, to []byte, message []byte) error {
 
-	// @todo I have no idea if this is the correct way to send messages cause whisper docs are shite.
+	// @todo I have no idea if this is the correct way to send messages cause whisper docs ar
 
 	msg, err := whisper.NewSentMessage(&whisper.MessageParams{
 		TTL:      0,
