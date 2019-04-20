@@ -10,7 +10,7 @@ func NewWhisperNode() *WhisperNode {
 	return nil
 }
 
-func (n *WhisperNode) Tick() {
+func (n *WhisperNode) Watch() {
 	panic("implement me")
 }
 
