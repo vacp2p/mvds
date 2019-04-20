@@ -8,7 +8,6 @@ func NewWhisperNode() *WhisperNode {
 	return nil
 }
 
-
 func (n *WhisperNode) Tick() {
 	panic("implement me")
 }
