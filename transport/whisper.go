@@ -11,7 +11,7 @@ func NewWhisperNode() *WhisperNode {
 	return nil
 }
 
-func (n *WhisperNode) Watch() {
+func (n *WhisperNode) Watch() error {
 	panic("implement me")
 }
 
