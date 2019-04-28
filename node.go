@@ -1,13 +1,13 @@
 package mvds
 
 import (
+	"github.com/status-im/mvds/securetransport"
 	"github.com/status-im/mvds/storage"
-	"github.com/status-im/mvds/transport"
 )
 
 type Node struct {
 	ms storage.MessageStore
-	n  transport.Node
+	st securetransport.Node
 
 	id []byte // @todo
 
