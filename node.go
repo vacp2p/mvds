@@ -1,9 +1,15 @@
 package mvds
 
-import "github.com/status-im/mvds/storage"
+import (
+	"github.com/status-im/mvds/storage"
+	"github.com/status-im/mvds/transport"
+)
 
 type Node struct {
 	ms storage.MessageStore
+	n  transport.Node
+
+	id []byte // @todo
 
 	Send     <-chan []byte
 	Received chan<- []byte // @todo message type
@@ -23,7 +29,7 @@ func (n *Node) onRequest(msg Request) {
 			// @todo
 		}
 
-		// @todo put msg on the wire
+		n.n.SendMessage(n.id, make([]byte, 0), m) // @todo
 	}
 }
 
