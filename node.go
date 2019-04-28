@@ -24,12 +24,13 @@ func (n *Node) Start() error {
 
 func (n *Node) onRequest(msg Request) {
 	for _, id := range msg.Messages {
-		m, err := n.ms.GetMessage(id)
+		_, err := n.ms.GetMessage(id)
 		if err != nil {
 			// @todo
 		}
 
-		n.n.SendMessage(n.id, make([]byte, 0), m) // @todo
+
+		n.send(id)
 	}
 }
 
@@ -41,4 +42,9 @@ func (n *Node) onAck(msg Ack) {
 
 func (n *Node) onMessage(msg Message) {
 
+}
+
+
+func (n *Node) send(id MessageID) error {
+	return nil
 }
