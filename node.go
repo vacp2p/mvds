@@ -16,21 +16,23 @@ func (n *Node) Start() error {
 	return nil
 }
 
-func (n *Node) onRequest(message Request) {
-	for _, id := range message.Messages {
+func (n *Node) onRequest(msg Request) {
+	for _, id := range msg.Messages {
 		m, err := n.ms.GetMessage(id)
 		if err != nil {
 			// @todo
 		}
 
-		// @todo put message on the wire
+		// @todo put msg on the wire
 	}
 }
 
-func (n *Node) onAck() {
-
+func (n *Node) onAck(msg Ack) {
+	for _, id := range msg.Messages {
+		// @todo mark acked
+	}
 }
 
-func (n *Node) onMessage() {
+func (n *Node) onMessage(msg Message) {
 
 }
