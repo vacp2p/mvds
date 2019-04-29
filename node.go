@@ -6,10 +6,21 @@ import (
 )
 
 type calculateSendTime func(count int64, lastTime int64) uint64
+type SyncState map[MessageID]State
+
+type State struct {
+	HoldFlag    bool
+	AckFlag     bool
+	RequestFlag bool
+	SendCount   int64
+	SendTime    uint64
+}
 
 type Node struct {
 	ms storage.MessageStore
 	st securetransport.Node
+
+	ss State
 
 	id []byte // @todo
 
@@ -46,7 +57,6 @@ func (n *Node) onRequest(msg Request) {
 			// @todo
 		}
 
-
 		n.send(id)
 	}
 }
@@ -60,7 +70,6 @@ func (n *Node) onAck(msg Ack) {
 func (n *Node) onMessage(msg Message) {
 	// @todo handle acks for these messages
 }
-
 
 func (n *Node) send(id MessageID) error {
 	return nil
