@@ -24,6 +24,21 @@ func (n *Node) Start() error {
 	return nil
 }
 
+func (n *Node) onPayload(payload Payload) {
+	// @todo probably needs to check that its not null and all that
+	n.onAck(payload.ack)
+	n.onRequest(payload.request)
+	n.onOffer(payload.offer)
+
+	for _, m := range payload.messages {
+		n.onMessage(m)
+	}
+}
+
+func (n *Node) onOffer(msg Offer) {
+
+}
+
 func (n *Node) onRequest(msg Request) {
 	for _, id := range msg.Messages {
 		_, err := n.ms.GetMessage(id)
