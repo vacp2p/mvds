@@ -5,14 +5,13 @@ import (
 	"github.com/status-im/mvds/storage"
 )
 
-type calculateSendTime func(count int64, lastTime int64) uint64
-type SyncState map[MessageID]State
+type calculateSendTime func(count uint64, lastTime uint64) uint64
 
 type State struct {
 	HoldFlag    bool
 	AckFlag     bool
 	RequestFlag bool
-	SendCount   int64
+	SendCount   uint64
 	SendTime    uint64
 }
 
@@ -20,7 +19,9 @@ type Node struct {
 	ms storage.MessageStore
 	st securetransport.Node
 
-	ss State
+	ss map[MessageID]State
+
+	sc calculateSendTime
 
 	id []byte // @todo
 
@@ -72,5 +73,16 @@ func (n *Node) onMessage(msg Message) {
 }
 
 func (n *Node) send(id MessageID) error {
+
+	s, ok := n.ss[id]
+	if !ok {
+		// @todo
+	}
+
+	s.SendCount += 1
+	s.SendTime = n.sc(s.SendCount, s.SendTime)
+
+	// @todo actually send
+
 	return nil
 }
