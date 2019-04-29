@@ -5,6 +5,8 @@ import (
 	"github.com/status-im/mvds/storage"
 )
 
+type calculateSendTime func(count int64, lastTime int64) uint64
+
 type Node struct {
 	ms storage.MessageStore
 	st securetransport.Node

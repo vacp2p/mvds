@@ -21,3 +21,10 @@ type Message struct {
 	Timestamp int64
 	Body      []byte
 }
+
+type Payload struct {
+	ack      Ack
+	offer    Offer
+	request  Request
+	messages []Message
+}
