@@ -20,7 +20,7 @@ type Node struct {
 	ms storage.MessageStore
 	st securetransport.Node
 
-	ss map[MessageID]State
+	ss map[MessageID]map[PeerId]State
 
 	queue map[PeerId]Payload // @todo we use this so we can queue messages rather than sending stuff alone
 							 // @todo make this a new object which is mutexed
@@ -40,45 +40,41 @@ func (n *Node) Start() error {
 	return nil
 }
 
-func (n *Node) onPayload(payload Payload) {
+func (n *Node) onPayload(sender PeerId, payload Payload) {
 	// @todo probably needs to check that its not null and all that
 	// @todo do these need to be go routines?
-	n.onAck(payload.ack)
-	n.onRequest(payload.request)
-	n.onOffer(payload.offer)
+	n.onAck(sender, payload.ack)
+	n.onRequest(sender, payload.request)
+	n.onOffer(sender, payload.offer)
 
 	for _, m := range payload.messages {
-		n.onMessage(m)
+		n.onMessage(sender, m)
 	}
 }
 
-func (n *Node) onOffer(msg Offer) {
+func (n *Node) onOffer(sender PeerId, msg Offer) {
 
 }
 
-func (n *Node) onRequest(msg Request) {
+func (n *Node) onRequest(sender PeerId, msg Request) {
 	for _, id := range msg.Messages {
-		_, err := n.ms.GetMessage(id)
-		if err != nil {
-			// @todo
-		}
-
-		n.send(id)
+		s, _ := n.ss[id][sender]
+		s.RequestFlag = true
 	}
 }
 
-func (n *Node) onAck(msg Ack) {
+func (n *Node) onAck(sender PeerId, msg Ack) {
 	for _, id := range msg.Messages {
-		s, _ := n.ss[id]
+		s, _ := n.ss[id][sender]
 		s.HoldFlag = true
 	}
 }
 
-func (n *Node) onMessage(msg Message) {
+func (n *Node) onMessage(sender PeerId, msg Message) {
 
 	// @todo handle
 
-	n.ss[msg.ID()] = State{
+	n.ss[msg.ID()][sender] = State{
 		HoldFlag: true,
 		AckFlag: true,
 		RequestFlag: false,
@@ -92,8 +88,8 @@ func (n *Node) onMessage(msg Message) {
 	}
 }
 
-func (n *Node) send(id MessageID) error {
-	s, _ := n.ss[id]
+func (n *Node) send(to PeerId, id MessageID) error {
+	s, _ := n.ss[id][to]
 
 	s.SendCount += 1
 	s.SendTime = n.sc(s.SendCount, s.SendTime)
