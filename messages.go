@@ -1,5 +1,10 @@
 package mvds
 
+import (
+	"crypto/sha256"
+	"encoding/binary"
+)
+
 // @todo: This will probably be changed to protocol buffers
 
 type MessageID [32]byte
@@ -18,12 +23,19 @@ type Request struct {
 
 type Message struct {
 	GroupID   [32]byte
-	Timestamp int64
+	Timestamp uint64
 	Body      []byte
 }
 
 func (m Message) ID() MessageID {
-	// @todo
+	t := make([]byte, 8)
+	binary.LittleEndian.PutUint64(t, uint64(m.Timestamp))
+
+	b := append([]byte("MESSAGE_ID"),  m.GroupID[:]...)
+	b = append(b, t...)
+	b = append(b, m.Body...)
+
+	return sha256.Sum256(b)
 }
 
 type Payload struct {
