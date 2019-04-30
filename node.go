@@ -89,6 +89,7 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 	}
 }
 
+// @todo this func is ugly
 func (n *Node) payloads() map[PeerId]*Payload {
 	pls := make(map[PeerId]*Payload)
 
