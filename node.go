@@ -20,7 +20,7 @@ type Node struct {
 	ms storage.MessageStore
 	st securetransport.Node
 
-	syncState       map[MessageID]map[PeerId]State
+	syncState       map[MessageID]map[PeerId]*State
 	offeredMessages map[PeerId][]MessageID
 
 	queue map[PeerId]Payload // @todo we use this so we can queue messages rather than sending stuff alone
@@ -59,22 +59,19 @@ func (n *Node) onOffer(sender PeerId, msg Offer) {
 			n.offeredMessages[sender] = append(n.offeredMessages[sender], id)
 		}
 
-		s, _ := n.syncState[id][sender]
-		s.HoldFlag = true
+		n.syncState[id][sender].HoldFlag = true
 	}
 }
 
 func (n *Node) onRequest(sender PeerId, msg Request) {
 	for _, id := range msg.Messages {
-		s, _ := n.syncState[id][sender]
-		s.RequestFlag = true
+		n.syncState[id][sender].RequestFlag = true
 	}
 }
 
 func (n *Node) onAck(sender PeerId, msg Ack) {
 	for _, id := range msg.Messages {
-		s, _ := n.syncState[id][sender]
-		s.HoldFlag = true
+		n.syncState[id][sender].HoldFlag = true
 	}
 }
 
@@ -82,13 +79,9 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 
 	// @todo handle
 
-	n.syncState[msg.ID()][sender] = State{
-		HoldFlag:    true,
-		AckFlag:     true,
-		RequestFlag: false,
-		SendTime:    0,
-		SendCount:   0,
-	}
+	// @todo do we need to initialize stucts?
+	n.syncState[msg.ID()][sender].HoldFlag = true
+	n.syncState[msg.ID()][sender].AckFlag = true
 
 	err := n.ms.SaveMessage(msg)
 	if err != nil {
