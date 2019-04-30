@@ -6,6 +6,7 @@ import (
 )
 
 type calculateSendTime func(count uint64, lastTime uint64) uint64
+type PeerId [32]byte
 
 type State struct {
 	HoldFlag    bool
@@ -20,6 +21,8 @@ type Node struct {
 	st securetransport.Node
 
 	ss map[MessageID]State
+
+	queue map[PeerId]Payload // @todo we use this so we can queue messages rather than sending stuff alone
 
 	sc calculateSendTime
 
@@ -82,4 +85,9 @@ func (n *Node) send(id MessageID) error {
 	// @todo actually send
 
 	return nil
+}
+
+
+func (n *Node) sendForPeer(peer PeerId) {
+	
 }
