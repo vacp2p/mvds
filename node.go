@@ -39,6 +39,18 @@ func (n *Node) Start() error {
 	return nil
 }
 
+func (n *Node) sendMessages() {
+
+	pls := n.payloads()
+
+	for id, p := range pls {
+		err := n.st.SendPayload(n.id, id, *p)
+		if err != nil {
+			// @todo
+		}
+	}
+}
+
 func (n *Node) onPayload(sender PeerId, payload Payload) {
 	// @todo probably needs to check that its not null and all that
 	// @todo do these need to be go routines?
