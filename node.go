@@ -1,11 +1,13 @@
 package mvds
 
 import (
+	"time"
+
 	"github.com/status-im/mvds/securetransport"
 	"github.com/status-im/mvds/storage"
 )
 
-type calculateSendTime func(count uint64, lastTime uint64) uint64
+type calculateSendTime func(count uint64, lastTime int64) int64
 type PeerId [32]byte
 
 type State struct {
@@ -13,7 +15,7 @@ type State struct {
 	AckFlag     bool
 	RequestFlag bool
 	SendCount   uint64
-	SendTime    uint64
+	SendTime    int64
 }
 
 type Node struct {
@@ -22,13 +24,12 @@ type Node struct {
 
 	syncState       map[MessageID]map[PeerId]*State
 	offeredMessages map[PeerId][]MessageID
-
-	queue map[PeerId]Payload // @todo we use this so we can queue messages rather than sending stuff alone
-							 // @todo make this a new object which is mutexed
+	sharing         map[GroupID][]PeerId
 
 	sc calculateSendTime
 
-	id []byte // @todo
+	id    PeerId
+	group GroupID
 
 	Send     <-chan []byte
 	Received chan<- []byte // @todo message type
@@ -86,6 +87,58 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 	if err != nil {
 		// @todo process, should this function ever even have an error?
 	}
+}
+
+func (n *Node) payloads() map[PeerId]Payload {
+	pls := make(map[PeerId]Payload)
+
+	// ack offered messages
+	for peer, messages := range n.offeredMessages {
+		for _, id := range messages {
+			if n.ms.HasMessage(id) && n.syncState[id][peer].AckFlag == true {
+				n.syncState[id][peer].AckFlag = false
+				pls[peer].ack.Messages = append(pls[peer].ack.Messages, id)
+			}
+		}
+	}
+
+	for id, peers := range n.syncState {
+		for peer, s := range peers {
+			// ack sent messages
+			if s.AckFlag {
+				pls[peer].ack.Messages = append(pls[peer].ack.Messages, id)
+				s.AckFlag = false
+			}
+
+			if n.isPeerInGroup(n.group, peer) && s.SendTime <= time.Now().Unix() {
+				// offer messages
+				if s.HoldFlag == false {
+					pls[peer].offer.Messages = append(pls[peer].offer.Messages, id)
+					n.syncState[id][peer].SendCount += 1
+					n.syncState[id][peer].SendTime = n.sc(n.syncState[id][peer].SendCount, n.syncState[id][peer].SendTime)
+				}
+
+				// send requested messages
+				if s.RequestFlag == true {
+					// @todo send requested messages
+				}
+			}
+
+			// @todo request offered messages
+		}
+	}
+
+	return pls
+}
+
+func (n Node) isPeerInGroup(g GroupID, p PeerId) bool {
+	for _, peer := range n.sharing[g] {
+		if peer == p {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (n *Node) send(to PeerId, id MessageID) error {

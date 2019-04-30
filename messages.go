@@ -8,6 +8,7 @@ import (
 // @todo: This will probably be changed to protocol buffers
 
 type MessageID [32]byte
+type GroupID [32]byte
 
 type Payload struct {
 	ack      Ack
@@ -29,7 +30,7 @@ type Request struct {
 }
 
 type Message struct {
-	GroupID   [32]byte
+	GroupID   GroupID
 	Timestamp uint64
 	Body      []byte
 }
