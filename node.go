@@ -64,7 +64,8 @@ func (n *Node) onRequest(msg Request) {
 
 func (n *Node) onAck(msg Ack) {
 	for _, id := range msg.Messages {
-		// @todo mark acked
+		s, _ := n.ss[id]
+		s.HoldFlag = true
 	}
 }
 
@@ -73,11 +74,7 @@ func (n *Node) onMessage(msg Message) {
 }
 
 func (n *Node) send(id MessageID) error {
-
-	s, ok := n.ss[id]
-	if !ok {
-		// @todo
-	}
+	s, _ := n.ss[id]
 
 	s.SendCount += 1
 	s.SendTime = n.sc(s.SendCount, s.SendTime)
