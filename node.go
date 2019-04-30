@@ -23,6 +23,7 @@ type Node struct {
 	ss map[MessageID]State
 
 	queue map[PeerId]Payload // @todo we use this so we can queue messages rather than sending stuff alone
+							 // @todo make this a new object which is mutexed
 
 	sc calculateSendTime
 
@@ -89,5 +90,5 @@ func (n *Node) send(id MessageID) error {
 
 
 func (n *Node) sendForPeer(peer PeerId) {
-	
+
 }
