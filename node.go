@@ -47,9 +47,17 @@ func NewNode(ms storage.MessageStore, st securetransport.Node, sc calculateSendT
 	}
 }
 
-func (n *Node) Start() error {
+func (n *Node) Run() error {
 
 	// @todo start listening to both the send channel and what the transport receives for later handling
+
+	return nil
+}
+
+// @todo
+func (n *Node) Send(data []byte) error {
+
+	// @todo this will call a function similar to Chat.send();
 
 	return nil
 }
@@ -108,6 +116,8 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 	if err != nil {
 		// @todo process, should this function ever even have an error?
 	}
+
+	// @todo push message somewhere for end user
 }
 
 func (n *Node) payloads() map[PeerId]*Payload {
