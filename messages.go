@@ -22,6 +22,10 @@ type Message struct {
 	Body      []byte
 }
 
+func (m Message) ID() MessageID {
+	// @todo
+}
+
 type Payload struct {
 	ack      Ack
 	offer    Offer

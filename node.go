@@ -42,6 +42,7 @@ func (n *Node) Start() error {
 
 func (n *Node) onPayload(payload Payload) {
 	// @todo probably needs to check that its not null and all that
+	// @todo do these need to be go routines?
 	n.onAck(payload.ack)
 	n.onRequest(payload.request)
 	n.onOffer(payload.offer)
@@ -74,7 +75,21 @@ func (n *Node) onAck(msg Ack) {
 }
 
 func (n *Node) onMessage(msg Message) {
-	// @todo handle acks for these messages
+
+	// @todo handle
+
+	n.ss[msg.ID()] = State{
+		HoldFlag: true,
+		AckFlag: true,
+		RequestFlag: false,
+		SendTime: 0,
+		SendCount: 0,
+	}
+
+	err := n.ms.SaveMessage(msg)
+	if err != nil {
+		// @todo process, should this function ever even have an error?
+	}
 }
 
 func (n *Node) send(id MessageID) error {
