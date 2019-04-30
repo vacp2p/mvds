@@ -20,7 +20,8 @@ type Node struct {
 	ms storage.MessageStore
 	st securetransport.Node
 
-	ss map[MessageID]map[PeerId]State
+	syncState       map[MessageID]map[PeerId]State
+	offeredMessages map[PeerId][]MessageID
 
 	queue map[PeerId]Payload // @todo we use this so we can queue messages rather than sending stuff alone
 							 // @todo make this a new object which is mutexed
@@ -53,19 +54,26 @@ func (n *Node) onPayload(sender PeerId, payload Payload) {
 }
 
 func (n *Node) onOffer(sender PeerId, msg Offer) {
+	for _, id := range msg.Messages {
+		if _, ok := n.syncState[id]; !ok || n.syncState[id][sender].AckFlag == true {
+			n.offeredMessages[sender] = append(n.offeredMessages[sender], id)
+		}
 
+		s, _ := n.syncState[id][sender]
+		s.HoldFlag = true
+	}
 }
 
 func (n *Node) onRequest(sender PeerId, msg Request) {
 	for _, id := range msg.Messages {
-		s, _ := n.ss[id][sender]
+		s, _ := n.syncState[id][sender]
 		s.RequestFlag = true
 	}
 }
 
 func (n *Node) onAck(sender PeerId, msg Ack) {
 	for _, id := range msg.Messages {
-		s, _ := n.ss[id][sender]
+		s, _ := n.syncState[id][sender]
 		s.HoldFlag = true
 	}
 }
@@ -74,7 +82,7 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 
 	// @todo handle
 
-	n.ss[msg.ID()][sender] = State{
+	n.syncState[msg.ID()][sender] = State{
 		HoldFlag: true,
 		AckFlag: true,
 		RequestFlag: false,
@@ -89,7 +97,7 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 }
 
 func (n *Node) send(to PeerId, id MessageID) error {
-	s, _ := n.ss[id][to]
+	s, _ := n.syncState[id][to]
 
 	s.SendCount += 1
 	s.SendTime = n.sc(s.SendCount, s.SendTime)
