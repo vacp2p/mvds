@@ -83,11 +83,11 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 	// @todo handle
 
 	n.syncState[msg.ID()][sender] = State{
-		HoldFlag: true,
-		AckFlag: true,
+		HoldFlag:    true,
+		AckFlag:     true,
 		RequestFlag: false,
-		SendTime: 0,
-		SendCount: 0,
+		SendTime:    0,
+		SendCount:   0,
 	}
 
 	err := n.ms.SaveMessage(msg)
@@ -106,7 +106,6 @@ func (n *Node) send(to PeerId, id MessageID) error {
 
 	return nil
 }
-
 
 func (n *Node) sendForPeer(peer PeerId) {
 

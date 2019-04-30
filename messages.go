@@ -9,6 +9,13 @@ import (
 
 type MessageID [32]byte
 
+type Payload struct {
+	ack      Ack
+	offer    Offer
+	request  Request
+	messages []Message
+}
+
 type Ack struct {
 	Messages []MessageID
 }
@@ -31,16 +38,9 @@ func (m Message) ID() MessageID {
 	t := make([]byte, 8)
 	binary.LittleEndian.PutUint64(t, uint64(m.Timestamp))
 
-	b := append([]byte("MESSAGE_ID"),  m.GroupID[:]...)
+	b := append([]byte("MESSAGE_ID"), m.GroupID[:]...)
 	b = append(b, t...)
 	b = append(b, m.Body...)
 
 	return sha256.Sum256(b)
-}
-
-type Payload struct {
-	ack      Ack
-	offer    Offer
-	request  Request
-	messages []Message
 }
