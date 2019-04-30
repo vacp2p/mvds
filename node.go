@@ -76,12 +76,11 @@ func (n *Node) onAck(sender PeerId, msg Ack) {
 }
 
 func (n *Node) onMessage(sender PeerId, msg Message) {
-
-	// @todo handle
-
 	// @todo do we need to initialize stucts?
 	n.syncState[msg.ID()][sender].HoldFlag = true
 	n.syncState[msg.ID()][sender].AckFlag = true
+
+	// @todo handle for group
 
 	err := n.ms.SaveMessage(msg)
 	if err != nil {
