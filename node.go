@@ -30,9 +30,6 @@ type Node struct {
 
 	id    PeerId
 	group GroupID
-
-	Send     <-chan []byte
-	Received chan<- []byte // @todo message type
 }
 
 func (n *Node) Start() error {
