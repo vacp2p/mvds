@@ -32,6 +32,19 @@ type Node struct {
 	group GroupID
 }
 
+func NewNode(ms storage.MessageStore, st securetransport.Node, sc calculateSendTime, id PeerId, group GroupID) Node {
+	return Node{
+		ms:              ms,
+		st:              st,
+		syncState:       make(map[MessageID]map[PeerId]*State),
+		offeredMessages: make(map[PeerId][]MessageID),
+		sharing:         make(map[GroupID][]PeerId),
+		sc:              sc,
+		id:              id,
+		group:           group,
+	}
+}
+
 func (n *Node) Start() error {
 
 	// @todo start listening to both the send channel and what the transport receives for later handling
