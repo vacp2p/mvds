@@ -56,7 +56,7 @@ func (n *Node) onPayload(sender PeerId, payload Payload) {
 
 func (n *Node) onOffer(sender PeerId, msg Offer) {
 	for _, id := range msg.Messages {
-		if _, ok := n.syncState[id]; !ok || n.syncState[id][sender].AckFlag == true {
+		if _, ok := n.syncState[id]; !ok || n.syncState[id][sender].AckFlag {
 			n.offeredMessages[sender] = append(n.offeredMessages[sender], id)
 		}
 
@@ -98,7 +98,7 @@ func (n *Node) payloads() map[PeerId]*Payload {
 		for _, id := range messages {
 
 			// ack offered messages
-			if n.ms.HasMessage(id) && n.syncState[id][peer].AckFlag == true {
+			if n.ms.HasMessage(id) && n.syncState[id][peer].AckFlag {
 				n.syncState[id][peer].AckFlag = false
 				pls[peer].ack.Messages = append(pls[peer].ack.Messages, id)
 			}
@@ -122,13 +122,13 @@ func (n *Node) payloads() map[PeerId]*Payload {
 
 			if n.isPeerInGroup(n.group, peer) && s.SendTime <= time.Now().Unix() {
 				// offer messages
-				if s.HoldFlag == false {
+				if !s.HoldFlag {
 					pls[peer].offer.Messages = append(pls[peer].offer.Messages, id)
 					n.updateSendTime(peer, id)
 				}
 
 				// send requested messages
-				if s.RequestFlag == true {
+				if s.RequestFlag {
 					m, err := n.ms.GetMessage(id)
 					if err != nil {
 						// @todo
