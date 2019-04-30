@@ -107,7 +107,7 @@ func (n *Node) payloads() map[PeerId]*Payload {
 			if !n.ms.HasMessage(id) && n.syncState[id][peer].SendTime <= time.Now().Unix() {
 				pls[peer].request.Messages = append(pls[peer].request.Messages, id)
 				n.syncState[id][peer].HoldFlag = true
-				n.updateSendTime(peer, id)
+				n.updateSendTime(id, peer)
 			}
 		}
 	}
@@ -124,7 +124,7 @@ func (n *Node) payloads() map[PeerId]*Payload {
 				// offer messages
 				if !s.HoldFlag {
 					pls[peer].offer.Messages = append(pls[peer].offer.Messages, id)
-					n.updateSendTime(peer, id)
+					n.updateSendTime(id, peer)
 				}
 
 				// send requested messages
@@ -135,7 +135,7 @@ func (n *Node) payloads() map[PeerId]*Payload {
 					}
 
 					pls[peer].messages = append(pls[peer].messages, m)
-					n.updateSendTime(peer, id)
+					n.updateSendTime(id, peer)
 					s.RequestFlag = false
 				}
 			}
@@ -145,7 +145,7 @@ func (n *Node) payloads() map[PeerId]*Payload {
 	return pls
 }
 
-func (n *Node) updateSendTime(p PeerId, m MessageID) {
+func (n *Node) updateSendTime(m MessageID, p PeerId) {
 	n.syncState[m][p].SendCount += 1
 	n.syncState[m][p].SendTime = n.sc(n.syncState[m][p].SendCount, n.syncState[m][p].SendTime)
 }
@@ -158,8 +158,4 @@ func (n Node) isPeerInGroup(g GroupID, p PeerId) bool {
 	}
 
 	return false
-}
-
-func (n *Node) sendForPeer(peer PeerId) {
-
 }
