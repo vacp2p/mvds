@@ -89,15 +89,24 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 	}
 }
 
-func (n *Node) payloads() map[PeerId]Payload {
-	pls := make(map[PeerId]Payload)
+func (n *Node) payloads() map[PeerId]*Payload {
+	pls := make(map[PeerId]*Payload)
 
 	// ack offered messages
 	for peer, messages := range n.offeredMessages {
 		for _, id := range messages {
+
+			// ack offered messages
 			if n.ms.HasMessage(id) && n.syncState[id][peer].AckFlag == true {
 				n.syncState[id][peer].AckFlag = false
 				pls[peer].ack.Messages = append(pls[peer].ack.Messages, id)
+			}
+
+			// request offered messages
+			if !n.ms.HasMessage(id) && n.syncState[id][peer].SendTime <= time.Now().Unix() {
+				pls[peer].request.Messages = append(pls[peer].request.Messages, id)
+				n.syncState[id][peer].HoldFlag = true
+				n.updateSendTime(peer, id)
 			}
 		}
 	}
@@ -114,21 +123,30 @@ func (n *Node) payloads() map[PeerId]Payload {
 				// offer messages
 				if s.HoldFlag == false {
 					pls[peer].offer.Messages = append(pls[peer].offer.Messages, id)
-					n.syncState[id][peer].SendCount += 1
-					n.syncState[id][peer].SendTime = n.sc(n.syncState[id][peer].SendCount, n.syncState[id][peer].SendTime)
+					n.updateSendTime(peer, id)
 				}
 
 				// send requested messages
 				if s.RequestFlag == true {
-					// @todo send requested messages
+					m, err := n.ms.GetMessage(id)
+					if err != nil {
+						// @todo
+					}
+
+					pls[peer].messages = append(pls[peer].messages, m)
+					n.updateSendTime(peer, id)
+					s.RequestFlag = false
 				}
 			}
-
-			// @todo request offered messages
 		}
 	}
 
 	return pls
+}
+
+func (n *Node) updateSendTime(p PeerId, m MessageID) {
+	n.syncState[m][p].SendCount += 1
+	n.syncState[m][p].SendTime = n.sc(n.syncState[m][p].SendCount, n.syncState[m][p].SendTime)
 }
 
 func (n Node) isPeerInGroup(g GroupID, p PeerId) bool {
@@ -139,17 +157,6 @@ func (n Node) isPeerInGroup(g GroupID, p PeerId) bool {
 	}
 
 	return false
-}
-
-func (n *Node) send(to PeerId, id MessageID) error {
-	s, _ := n.syncState[id][to]
-
-	s.SendCount += 1
-	s.SendTime = n.sc(s.SendCount, s.SendTime)
-
-	// @todo actually send
-
-	return nil
 }
 
 func (n *Node) sendForPeer(peer PeerId) {
