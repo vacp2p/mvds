@@ -11,10 +11,10 @@ type MessageID [32]byte
 type GroupID [32]byte
 
 type Payload struct {
-	ack      Ack
-	offer    Offer
-	request  Request
-	messages []Message
+	Ack      Ack
+	Offer    Offer
+	Request  Request
+	Messages []Message
 }
 
 type Ack struct {

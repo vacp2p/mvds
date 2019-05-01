@@ -77,11 +77,11 @@ func (n *Node) sendMessages() {
 func (n *Node) onPayload(sender PeerId, payload Payload) {
 	// @todo probably needs to check that its not null and all that
 	// @todo do these need to be go routines?
-	n.onAck(sender, payload.ack)
-	n.onRequest(sender, payload.request)
-	n.onOffer(sender, payload.offer)
+	n.onAck(sender, payload.Ack)
+	n.onRequest(sender, payload.Request)
+	n.onOffer(sender, payload.Offer)
 
-	for _, m := range payload.messages {
+	for _, m := range payload.Messages {
 		n.onMessage(sender, m)
 	}
 }
@@ -123,19 +123,19 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 func (n *Node) payloads() map[PeerId]*Payload {
 	pls := make(map[PeerId]*Payload)
 
-	// ack offered messages
+	// Ack offered Messages
 	for peer, messages := range n.offeredMessages {
 		for _, id := range messages {
 
-			// ack offered messages
+			// Ack offered Messages
 			if n.ms.HasMessage(id) && n.syncState[id][peer].AckFlag {
 				n.syncState[id][peer].AckFlag = false
-				pls[peer].ack.Messages = append(pls[peer].ack.Messages, id)
+				pls[peer].Ack.Messages = append(pls[peer].Ack.Messages, id)
 			}
 
-			// request offered messages
+			// Request offered Messages
 			if !n.ms.HasMessage(id) && n.syncState[id][peer].SendTime <= time.Now().Unix() {
-				pls[peer].request.Messages = append(pls[peer].request.Messages, id)
+				pls[peer].Request.Messages = append(pls[peer].Request.Messages, id)
 				n.syncState[id][peer].HoldFlag = true
 				n.updateSendTime(id, peer)
 			}
@@ -144,27 +144,27 @@ func (n *Node) payloads() map[PeerId]*Payload {
 
 	for id, peers := range n.syncState {
 		for peer, s := range peers {
-			// ack sent messages
+			// Ack sent Messages
 			if s.AckFlag {
-				pls[peer].ack.Messages = append(pls[peer].ack.Messages, id)
+				pls[peer].Ack.Messages = append(pls[peer].Ack.Messages, id)
 				s.AckFlag = false
 			}
 
 			if n.isPeerInGroup(n.group, peer) && s.SendTime <= time.Now().Unix() {
-				// offer messages
+				// Offer Messages
 				if !s.HoldFlag {
-					pls[peer].offer.Messages = append(pls[peer].offer.Messages, id)
+					pls[peer].Offer.Messages = append(pls[peer].Offer.Messages, id)
 					n.updateSendTime(id, peer)
 				}
 
-				// send requested messages
+				// send requested Messages
 				if s.RequestFlag {
 					m, err := n.ms.GetMessage(id)
 					if err != nil {
 						// @todo
 					}
 
-					pls[peer].messages = append(pls[peer].messages, m)
+					pls[peer].Messages = append(pls[peer].Messages, m)
 					n.updateSendTime(id, peer)
 					s.RequestFlag = false
 				}
