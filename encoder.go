@@ -1,15 +1,14 @@
-package encoding
+package mvds
 
 import (
 	"io"
 	"reflect"
 
 	"github.com/russolsen/transit"
-	"github.com/status-im/mvds"
 )
 
 var (
-	messageType                = reflect.TypeOf(mvds.Payload{})
+	messageType                = reflect.TypeOf(Payload{})
 	defaultMessageValueEncoder = &encoder{}
 )
 
@@ -26,7 +25,7 @@ func (encoder) IsStringable(reflect.Value) bool {
 }
 
 func (encoder) Encode(e transit.Encoder, value reflect.Value, asString bool) error {
-	payload := value.Interface().(mvds.Payload)
+	payload := value.Interface().(Payload)
 
 	messages := make([]interface{}, 0)
 	for _, msg := range payload.Messages {
