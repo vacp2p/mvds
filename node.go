@@ -76,17 +76,20 @@ func (n *Node) sendMessages() {
 func (n *Node) onPayload(sender PeerId, payload Payload) {
 	// @todo probably needs to check that its not null and all that
 	// @todo do these need to be go routines?
-	n.onAck(sender, payload.Ack)
-	n.onRequest(sender, payload.Request)
-	n.onOffer(sender, payload.Offer)
+	n.onAck(sender, *payload.Ack)
+	n.onRequest(sender, *payload.Request)
+	n.onOffer(sender, *payload.Offer)
 
 	for _, m := range payload.Messages {
-		n.onMessage(sender, m)
+		n.onMessage(sender, *m)
 	}
 }
 
 func (n *Node) onOffer(sender PeerId, msg Offer) {
-	for _, id := range msg.Messages {
+	for _, raw := range msg.Id {
+		var id MessageID
+		copy(id[:], raw[:])
+
 		if _, ok := n.syncState[id]; !ok || n.syncState[id][sender].AckFlag {
 			n.offeredMessages[sender] = append(n.offeredMessages[sender], id)
 		}
@@ -96,13 +99,19 @@ func (n *Node) onOffer(sender PeerId, msg Offer) {
 }
 
 func (n *Node) onRequest(sender PeerId, msg Request) {
-	for _, id := range msg.Messages {
+	for _, raw := range msg.Id {
+		var id MessageID
+		copy(id[:], raw[:])
+
 		n.syncState[id][sender].RequestFlag = true
 	}
 }
 
 func (n *Node) onAck(sender PeerId, msg Ack) {
-	for _, id := range msg.Messages {
+	for _, raw := range msg.Id {
+		var id MessageID
+		copy(id[:], raw[:])
+
 		n.syncState[id][sender].HoldFlag = true
 	}
 }
@@ -129,12 +138,12 @@ func (n *Node) payloads() map[PeerId]*Payload {
 			// Ack offered Messages
 			if n.ms.HasMessage(id) && n.syncState[id][peer].AckFlag {
 				n.syncState[id][peer].AckFlag = false
-				pls[peer].Ack.Messages = append(pls[peer].Ack.Messages, id)
+				pls[peer].Ack.Id = append(pls[peer].Ack.Id, id[:])
 			}
 
 			// Request offered Messages
 			if !n.ms.HasMessage(id) && n.syncState[id][peer].SendTime <= time.Now().Unix() {
-				pls[peer].Request.Messages = append(pls[peer].Request.Messages, id)
+				pls[peer].Request.Id = append(pls[peer].Request.Id, id[:])
 				n.syncState[id][peer].HoldFlag = true
 				n.updateSendTime(id, peer)
 			}
@@ -145,14 +154,14 @@ func (n *Node) payloads() map[PeerId]*Payload {
 		for peer, s := range peers {
 			// Ack sent Messages
 			if s.AckFlag {
-				pls[peer].Ack.Messages = append(pls[peer].Ack.Messages, id)
+				pls[peer].Ack.Id = append(pls[peer].Ack.Id, id[:])
 				s.AckFlag = false
 			}
 
 			if n.isPeerInGroup(n.group, peer) && s.SendTime <= time.Now().Unix() {
 				// Offer Messages
 				if !s.HoldFlag {
-					pls[peer].Offer.Messages = append(pls[peer].Offer.Messages, id)
+					pls[peer].Offer.Id = append(pls[peer].Offer.Id, id[:])
 					n.updateSendTime(id, peer)
 				}
 
@@ -163,7 +172,7 @@ func (n *Node) payloads() map[PeerId]*Payload {
 						// @todo
 					}
 
-					pls[peer].Messages = append(pls[peer].Messages, m)
+					pls[peer].Messages = append(pls[peer].Messages, &m)
 					n.updateSendTime(id, peer)
 					s.RequestFlag = false
 				}
