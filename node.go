@@ -87,8 +87,7 @@ func (n *Node) onPayload(sender PeerId, payload Payload) {
 
 func (n *Node) onOffer(sender PeerId, msg Offer) {
 	for _, raw := range msg.Id {
-		var id MessageID
-		copy(id[:], raw[:])
+		id := toMessageID(raw)
 
 		if _, ok := n.syncState[id]; !ok || n.syncState[id][sender].AckFlag {
 			n.offeredMessages[sender] = append(n.offeredMessages[sender], id)
@@ -99,20 +98,14 @@ func (n *Node) onOffer(sender PeerId, msg Offer) {
 }
 
 func (n *Node) onRequest(sender PeerId, msg Request) {
-	for _, raw := range msg.Id {
-		var id MessageID
-		copy(id[:], raw[:])
-
-		n.syncState[id][sender].RequestFlag = true
+	for _, id := range msg.Id {
+		n.syncState[toMessageID(id)][sender].RequestFlag = true
 	}
 }
 
 func (n *Node) onAck(sender PeerId, msg Ack) {
-	for _, raw := range msg.Id {
-		var id MessageID
-		copy(id[:], raw[:])
-
-		n.syncState[id][sender].HoldFlag = true
+	for _, id := range msg.Id {
+		n.syncState[toMessageID(id)][sender].HoldFlag = true
 	}
 }
 
@@ -196,4 +189,10 @@ func (n Node) isPeerInGroup(g GroupID, p PeerId) bool {
 	}
 
 	return false
+}
+
+func toMessageID(b []byte) MessageID {
+	var id MessageID
+	copy(id[:], b)
+	return id
 }
