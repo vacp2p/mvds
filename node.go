@@ -24,6 +24,7 @@ type Node struct {
 	syncState       map[MessageID]map[PeerId]*State
 	offeredMessages map[PeerId][]MessageID
 	sharing         map[GroupID][]PeerId
+	peers           []PeerId
 
 	sc calculateSendTime
 
@@ -38,6 +39,7 @@ func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId, gro
 		syncState:       make(map[MessageID]map[PeerId]*State),
 		offeredMessages: make(map[PeerId][]MessageID),
 		sharing:         make(map[GroupID][]PeerId),
+		peers:           make([]PeerId, 0),
 		sc:              sc,
 		id:              id,
 		group:           group,
@@ -48,13 +50,40 @@ func (n *Node) Run() error {
 
 	// @todo start listening to both the send channel and what the transport receives for later handling
 
+	// @todo maybe some waiting?
+	for {
+		s, p := n.st.Watch()
+		go n.onPayload(s, p)
+
+		go n.sendMessages() // @todo probably not that efficient here
+	}
+
 	return nil
 }
 
-// @todo
 func (n *Node) Send(data []byte) error {
 
-	// @todo this will call a function similar to Chat.send();
+	m := Message{
+		GroupId: n.group[:],
+		Timestamp: time.Now().Unix(),
+		Body: data,
+	}
+
+	err := n.ms.SaveMessage(m)
+	if err != nil {
+		return err
+	}
+
+	id := m.ID()
+
+	for _, p := range n.peers {
+		if !n.isPeerInGroup(n.group, p) {
+			continue
+		}
+
+		s := n.state(id, p)
+		s.SendTime = time.Now().Unix()
+	}
 
 	return nil
 }
