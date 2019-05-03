@@ -121,6 +121,9 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 }
 
 func (n *Node) payloads() map[PeerId]*Payload {
+
+	// @todo do we need a mutex?
+
 	pls := make(map[PeerId]*Payload)
 
 	// Ack offered Messages
