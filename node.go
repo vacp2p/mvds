@@ -66,7 +66,7 @@ func (n *Node) sendMessages() {
 	for id, p := range pls {
 		err := n.st.Send(n.id, id, *p)
 		if err != nil {
-		//	@todo
+			//	@todo
 		}
 	}
 }

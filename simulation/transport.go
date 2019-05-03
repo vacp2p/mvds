@@ -12,12 +12,12 @@ type packet struct {
 }
 
 type Transport struct {
-	in <- chan packet
-	out map[mvds.PeerId]chan <-packet
+	in  <-chan packet
+	out map[mvds.PeerId]chan<- packet
 }
 
 func (t *Transport) Watch() (mvds.PeerId, mvds.Payload) {
-	p := <- t.in
+	p := <-t.in
 	return p.sender, p.payload
 }
 
