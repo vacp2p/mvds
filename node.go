@@ -4,8 +4,6 @@ package mvds
 
 import (
 	"time"
-
-	"github.com/status-im/mvds/securetransport"
 )
 
 type calculateSendTime func(count uint64, lastTime int64) int64
@@ -21,7 +19,7 @@ type State struct {
 
 type Node struct {
 	ms MessageStore
-	st securetransport.Node
+	st Transport
 
 	syncState       map[MessageID]map[PeerId]*State
 	offeredMessages map[PeerId][]MessageID
@@ -33,7 +31,7 @@ type Node struct {
 	group GroupID
 }
 
-func NewNode(ms MessageStore, st securetransport.Node, sc calculateSendTime, id PeerId, group GroupID) Node {
+func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId, group GroupID) Node {
 	return Node{
 		ms:              ms,
 		st:              st,
@@ -63,14 +61,14 @@ func (n *Node) Send(data []byte) error {
 
 func (n *Node) sendMessages() {
 
-	//pls := n.payloads()
+	pls := n.payloads()
 
-	//for id, p := range pls {
-		//err := n.st.SendPayload(n.id, id, *p)
-		//if err != nil {
+	for id, p := range pls {
+		err := n.st.Send(n.id, id, *p)
+		if err != nil {
 		//	@todo
-		//}
-	//}
+		}
+	}
 }
 
 func (n *Node) onPayload(sender PeerId, payload Payload) {
