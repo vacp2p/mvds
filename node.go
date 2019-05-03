@@ -30,6 +30,8 @@ type Node struct {
 
 	id    PeerId
 	group GroupID
+
+	time int64
 }
 
 func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId, group GroupID) Node {
@@ -43,6 +45,7 @@ func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId, gro
 		sc:              sc,
 		id:              id,
 		group:           group,
+		time: 0,
 	}
 }
 
@@ -56,6 +59,8 @@ func (n *Node) Run() error {
 		go n.onPayload(s, p)
 
 		go n.sendMessages() // @todo probably not that efficient here
+
+		n.time += 1
 	}
 
 	return nil
@@ -82,7 +87,7 @@ func (n *Node) Send(data []byte) error {
 		}
 
 		s := n.state(id, p)
-		s.SendTime = time.Now().Unix()
+		s.SendTime = n.time + 1
 	}
 
 	return nil
@@ -166,7 +171,7 @@ func (n *Node) payloads() map[PeerId]*Payload {
 			}
 
 			// Request offered Messages
-			if !n.ms.HasMessage(id) && n.syncState[id][peer].SendTime <= time.Now().Unix() {
+			if !n.ms.HasMessage(id) && n.syncState[id][peer].SendTime <= n.time {
 				pls[peer].Request.Id = append(pls[peer].Request.Id, id[:])
 				n.syncState[id][peer].HoldFlag = true
 				n.updateSendTime(id, peer)
@@ -182,7 +187,7 @@ func (n *Node) payloads() map[PeerId]*Payload {
 				s.AckFlag = false
 			}
 
-			if n.isPeerInGroup(n.group, peer) && s.SendTime <= time.Now().Unix() {
+			if n.isPeerInGroup(n.group, peer) && s.SendTime <= n.time {
 				// Offer Messages
 				if !s.HoldFlag {
 					pls[peer].Offer.Id = append(pls[peer].Offer.Id, id[:])
