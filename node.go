@@ -89,6 +89,8 @@ func (n *Node) Send(data []byte) error {
 		s.SendTime = n.time + 1
 	}
 
+	// @todo think about a way to insta trigger send messages when send was selected, we don't wanna wait for ticks here
+
 	return nil
 }
 
