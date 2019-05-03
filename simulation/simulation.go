@@ -87,7 +87,13 @@ func createNode(transport *Transport, id mvds.PeerId, groupID mvds.GroupID) mvds
 }
 
 func chat(nodes ...mvds.Node) {
+	for {
 
+		for _, n := range nodes {
+			n.Send([]byte("test"))
+		}
+
+	}
 }
 
 func Calc(count uint64, lastTime int64) int64 {

@@ -55,7 +55,7 @@ func (n *Node) Run() {
 
 	// @todo maybe some waiting?
 	for {
-		s, p := n.st.Watch()
+		s, p := n.st.Watch() // @todo this won't work
 		go n.onPayload(s, p)
 
 		go n.sendMessages() // @todo probably not that efficient here
