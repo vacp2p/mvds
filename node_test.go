@@ -2,7 +2,9 @@ package mvds
 
 import (
 	"crypto/rand"
+	"reflect"
 	"testing"
+	"time"
 )
 
 func TestOnRequest(t *testing.T) {
@@ -54,6 +56,36 @@ func TestOnOffer(t *testing.T) {
 
 	if n.offeredMessages[p][0] != m {
 		t.Errorf("message was not added to offered list")
+	}
+}
+
+func TestOnMessage(t *testing.T) {
+	n := getNodeForMessageHandlerTest()
+	n.ms = &dummystore{
+		MS: make(map[MessageID]Message),
+	}
+
+	id := randomMessageId()
+
+	m := Message{
+		GroupId: id[:],
+		Timestamp: time.Now().Unix(),
+		Body: []byte("hello world"),
+	}
+
+	p := randomPeerId()
+
+	n.onMessage(p, m)
+
+	sm, _ := n.ms.GetMessage(m.ID())
+	if !reflect.DeepEqual(sm, m) {
+		t.Errorf("message was not stored correctly")
+	}
+
+	s := n.state(m.ID(), p)
+
+	if s.HoldFlag != true || s.AckFlag != true {
+		t.Errorf("did not set flags")
 	}
 }
 

@@ -195,7 +195,6 @@ func (n *Node) state(id MessageID, sender PeerId) *State {
 
 func (n *Node) updateSendTime(m MessageID, p PeerId) {
 	s := n.state(m, p)
-
 	s.SendCount += 1
 	s.SendTime = n.sc(s.SendCount, s.SendTime)
 }
