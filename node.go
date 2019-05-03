@@ -45,7 +45,7 @@ func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId, gro
 		sc:              sc,
 		id:              id,
 		group:           group,
-		time: 0,
+		time:            0,
 	}
 }
 
@@ -67,11 +67,10 @@ func (n *Node) Run() error {
 }
 
 func (n *Node) Send(data []byte) error {
-
 	m := Message{
-		GroupId: n.group[:],
+		GroupId:   n.group[:],
 		Timestamp: time.Now().Unix(),
-		Body: data,
+		Body:      data,
 	}
 
 	err := n.ms.SaveMessage(m)
