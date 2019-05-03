@@ -88,11 +88,7 @@ func (n *Node) onOffer(sender PeerId, msg Offer) {
 		id := toMessageID(raw)
 
 		if _, ok := n.syncState[id]; !ok || n.syncState[id][sender].AckFlag {
-			if _, ok = n.offeredMessages[sender]; !ok {
-				n.offeredMessages[sender] = make([]MessageID, 0)
-			}
-
-			n.offeredMessages[sender] = append(n.offeredMessages[sender], id)
+			n.appendOfferedMessage(sender, id)
 		}
 
 		n.state(id, sender).HoldFlag = true
@@ -189,6 +185,14 @@ func (n *Node) state(id MessageID, sender PeerId) *State {
 	}
 
 	return n.syncState[id][sender]
+}
+
+func (n *Node) appendOfferedMessage(sender PeerId, id MessageID) {
+	if _, ok := n.offeredMessages[sender]; !ok {
+		n.offeredMessages[sender] = make([]MessageID, 0)
+	}
+
+	n.offeredMessages[sender] = append(n.offeredMessages[sender], id)
 }
 
 func (n *Node) updateSendTime(m MessageID, p PeerId) {
