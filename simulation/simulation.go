@@ -12,3 +12,7 @@ func main() {
 	bt := Transport{in: bin, out: make(map[mvds.PeerId]chan<- packet)}
 	ct := Transport{in: cin, out: make(map[mvds.PeerId]chan<- packet)}
 }
+
+func chat(nodes ...mvds.Node) {
+
+}

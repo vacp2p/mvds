@@ -6,19 +6,19 @@ type MessageStore interface {
 	SaveMessage(message Message) error
 }
 
-type dummystore struct {
+type DummyStore struct {
 	ms map[MessageID]Message
 }
 
-func (ds *dummystore) HasMessage(id MessageID) bool {
+func (ds *DummyStore) HasMessage(id MessageID) bool {
 	_, ok := ds.ms[id];  return ok
 }
 
-func (ds *dummystore) GetMessage(id MessageID) (Message, error) {
+func (ds *DummyStore) GetMessage(id MessageID) (Message, error) {
 	m, _ := ds.ms[id]; return m, nil
 }
 
-func (ds *dummystore) SaveMessage(message Message) error {
+func (ds *DummyStore) SaveMessage(message Message) error {
 	ds.ms[message.ID()] = message
 	return nil
 }
