@@ -7,18 +7,18 @@ type MessageStore interface {
 }
 
 type dummystore struct {
-	MS map[MessageID]Message
+	ms map[MessageID]Message
 }
 
 func (ds *dummystore) HasMessage(id MessageID) bool {
-	_, ok := ds.MS[id];  return ok
+	_, ok := ds.ms[id];  return ok
 }
 
 func (ds *dummystore) GetMessage(id MessageID) (Message, error) {
-	m, _ := ds.MS[id]; return m, nil
+	m, _ := ds.ms[id]; return m, nil
 }
 
 func (ds *dummystore) SaveMessage(message Message) error {
-	ds.MS[message.ID()] = message
+	ds.ms[message.ID()] = message
 	return nil
 }
