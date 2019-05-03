@@ -92,6 +92,18 @@ func (n *Node) Send(data []byte) error {
 	return nil
 }
 
+func (n *Node) AddPeer(id PeerId) {
+	n.peers = append(n.peers, id)
+}
+
+func (n *Node) Share(group GroupID, id PeerId) {
+	if _, ok := n.sharing[group]; !ok {
+		n.sharing[group] = make([]PeerId, 0)
+	}
+
+	n.sharing[group] = append(n.sharing[group], id)
+}
+
 func (n *Node) sendMessages() {
 
 	pls := n.payloads()

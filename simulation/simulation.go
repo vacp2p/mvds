@@ -56,7 +56,23 @@ func main() {
 	ct.out[na.ID] = ain
 	ct.out[nb.ID] = bin
 
-	// @todo add peers, add sharing
+	na.AddPeer(nb.ID)
+	na.AddPeer(nc.ID)
+
+	nb.AddPeer(na.ID)
+	nb.AddPeer(nc.ID)
+
+	nc.AddPeer(na.ID)
+	nc.AddPeer(nb.ID)
+
+	na.Share(group, nb.ID)
+	na.Share(group, nc.ID)
+
+	nb.Share(group, na.ID)
+	nb.Share(group, nc.ID)
+
+	nc.Share(group, na.ID)
+	nc.Share(group, nb.ID)
 
 	go na.Run()
 	go nb.Run()
