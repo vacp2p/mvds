@@ -28,7 +28,7 @@ type Node struct {
 
 	sc calculateSendTime
 
-	id    PeerId
+	ID    PeerId
 	group GroupID
 
 	time int64
@@ -43,13 +43,13 @@ func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId, gro
 		sharing:         make(map[GroupID][]PeerId),
 		peers:           make([]PeerId, 0),
 		sc:              sc,
-		id:              id,
+		ID:              id,
 		group:           group,
 		time:            0,
 	}
 }
 
-func (n *Node) Run() error {
+func (n *Node) Run() {
 
 	// @todo start listening to both the send channel and what the transport receives for later handling
 
@@ -62,8 +62,6 @@ func (n *Node) Run() error {
 
 		n.time += 1
 	}
-
-	return nil
 }
 
 func (n *Node) Send(data []byte) error {
@@ -99,7 +97,7 @@ func (n *Node) sendMessages() {
 	pls := n.payloads()
 
 	for id, p := range pls {
-		err := n.st.Send(n.id, id, *p)
+		err := n.st.Send(n.ID, id, *p)
 		if err != nil {
 			//	@todo
 		}

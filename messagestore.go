@@ -10,6 +10,10 @@ type DummyStore struct {
 	ms map[MessageID]Message
 }
 
+func NewDummyStore() DummyStore {
+	return DummyStore{ms: make(map[MessageID]Message)}
+}
+
 func (ds *DummyStore) HasMessage(id MessageID) bool {
 	_, ok := ds.ms[id];  return ok
 }

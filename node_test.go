@@ -61,9 +61,9 @@ func TestOnOffer(t *testing.T) {
 
 func TestOnMessage(t *testing.T) {
 	n := getNodeForMessageHandlerTest()
-	n.ms = &DummyStore{
-		ms: make(map[MessageID]Message),
-	}
+
+	ds := NewDummyStore()
+	n.ms = &ds
 
 	id := randomMessageId()
 
