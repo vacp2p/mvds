@@ -72,6 +72,9 @@ func (n *Node) Run() {
 }
 
 func (n *Node) Send(data []byte) error {
+	n.Lock()
+	defer n.Unlock()
+
 	m := Message{
 		GroupId:   n.group[:],
 		Timestamp: time.Now().Unix(),
@@ -186,7 +189,7 @@ func (n *Node) payloads() map[PeerId]*Payload {
 			}
 
 			// Request offered Messages
-			if !n.ms.HasMessage(id) && n.syncState[id][peer].SendTime <= n.time {
+			if !n.ms.HasMessage(id) && n.state(id, peer).SendTime <= n.time {
 				pls[peer].Request.Id = append(pls[peer].Request.Id, id[:])
 				n.syncState[id][peer].HoldFlag = true
 				n.updateSendTime(id, peer)
@@ -234,6 +237,9 @@ func (n *Node) payloads() map[PeerId]*Payload {
 }
 
 func (n *Node) state(id MessageID, sender PeerId) *State {
+	n.Lock()
+	defer n.Unlock()
+
 	if _, ok := n.syncState[id]; !ok {
 		n.syncState[id] = make(map[PeerId]*State)
 	}

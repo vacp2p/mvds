@@ -78,7 +78,7 @@ func main() {
 	go nb.Run()
 	go nc.Run()
 
-	chat(na, nb, nc)
+	chat(na, nb)
 }
 
 func createNode(transport *Transport, id mvds.PeerId, groupID mvds.GroupID) mvds.Node {
@@ -88,11 +88,9 @@ func createNode(transport *Transport, id mvds.PeerId, groupID mvds.GroupID) mvds
 
 func chat(nodes ...mvds.Node) {
 	for {
-
 		for _, n := range nodes {
 			n.Send([]byte("test"))
 		}
-
 	}
 }
 
