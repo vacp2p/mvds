@@ -121,8 +121,6 @@ func (n *Node) sendMessages() {
 }
 
 func (n *Node) onPayload(sender PeerId, payload Payload) {
-	// @todo probably needs to check that its not null and all that
-	// @todo do these need to be go routines?
 	n.onAck(sender, *payload.Ack)
 	n.onRequest(sender, *payload.Request)
 	n.onOffer(sender, *payload.Offer)
@@ -235,15 +233,6 @@ func (n *Node) payloads() map[PeerId]*Payload {
 	return pls
 }
 
-func createPayload() *Payload {
-	return &Payload{
-		Ack: &Ack{Id: make([][]byte, 0)},
-		Offer: &Offer{Id: make([][]byte, 0)},
-		Request: &Request{Id: make([][]byte, 0)},
-		Messages: make([]*Message, 0),
-	}
-}
-
 func (n *Node) state(id MessageID, sender PeerId) *State {
 	if _, ok := n.syncState[id]; !ok {
 		n.syncState[id] = make(map[PeerId]*State)
@@ -284,4 +273,13 @@ func toMessageID(b []byte) MessageID {
 	var id MessageID
 	copy(id[:], b)
 	return id
+}
+
+func createPayload() *Payload {
+	return &Payload{
+		Ack: &Ack{Id: make([][]byte, 0)},
+		Offer: &Offer{Id: make([][]byte, 0)},
+		Request: &Request{Id: make([][]byte, 0)},
+		Messages: make([]*Message, 0),
+	}
 }
