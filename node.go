@@ -55,8 +55,12 @@ func (n *Node) Run() {
 
 	// @todo maybe some waiting?
 	for {
-		s, p := n.st.Watch() // @todo this won't work
-		go n.onPayload(s, p)
+		<-time.After(5 * time.Second)
+
+		go func() {
+			s, p := n.st.Watch()
+			n.onPayload(s, p)
+		}()
 
 		go n.sendMessages() // @todo probably not that efficient here
 
@@ -173,6 +177,10 @@ func (n *Node) payloads() map[PeerId]*Payload {
 
 	// Ack offered Messages
 	for peer, messages := range n.offeredMessages {
+		if _, ok := pls[peer]; !ok {
+			pls[peer] = createPayload()
+		}
+
 		for _, id := range messages {
 
 			// Ack offered Messages
@@ -192,6 +200,10 @@ func (n *Node) payloads() map[PeerId]*Payload {
 
 	for id, peers := range n.syncState {
 		for peer, s := range peers {
+			if _, ok := pls[peer]; !ok {
+				pls[peer] = createPayload()
+			}
+
 			// Ack sent Messages
 			if s.AckFlag {
 				pls[peer].Ack.Id = append(pls[peer].Ack.Id, id[:])
@@ -221,6 +233,15 @@ func (n *Node) payloads() map[PeerId]*Payload {
 	}
 
 	return pls
+}
+
+func createPayload() *Payload {
+	return &Payload{
+		Ack: &Ack{Id: make([][]byte, 0)},
+		Offer: &Offer{Id: make([][]byte, 0)},
+		Request: &Request{Id: make([][]byte, 0)},
+		Messages: make([]*Message, 0),
+	}
 }
 
 func (n *Node) state(id MessageID, sender PeerId) *State {
