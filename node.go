@@ -3,6 +3,7 @@ package mvds
 // @todo this is a very rough implementation that needs cleanup
 
 import (
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,8 @@ type State struct {
 }
 
 type Node struct {
+	sync.Mutex
+
 	ms MessageStore
 	st Transport
 
@@ -55,7 +58,7 @@ func (n *Node) Run() {
 
 	// @todo maybe some waiting?
 	for {
-		<-time.After(5 * time.Second)
+		<-time.After(1 * time.Second)
 
 		go func() {
 			s, p := n.st.Watch()
@@ -133,11 +136,7 @@ func (n *Node) onPayload(sender PeerId, payload Payload) {
 func (n *Node) onOffer(sender PeerId, msg Offer) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
-
-		if _, ok := n.syncState[id]; !ok || n.syncState[id][sender].AckFlag {
-			n.appendOfferedMessage(sender, id)
-		}
-
+		n.appendOfferedMessage(sender, id)
 		n.state(id, sender).HoldFlag = true
 	}
 }
@@ -168,8 +167,8 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 }
 
 func (n *Node) payloads() map[PeerId]*Payload {
-
-	// @todo do we need a mutex?
+	n.Lock()
+	defer n.Unlock()
 
 	pls := make(map[PeerId]*Payload)
 
@@ -180,7 +179,6 @@ func (n *Node) payloads() map[PeerId]*Payload {
 		}
 
 		for _, id := range messages {
-
 			// Ack offered Messages
 			if n.ms.HasMessage(id) && n.syncState[id][peer].AckFlag {
 				n.syncState[id][peer].AckFlag = false
@@ -213,6 +211,8 @@ func (n *Node) payloads() map[PeerId]*Payload {
 				if !s.HoldFlag {
 					pls[peer].Offer.Id = append(pls[peer].Offer.Id, id[:])
 					n.updateSendTime(id, peer)
+
+					// @todo do we wanna send messages like in interactive mode?
 				}
 
 				// send requested Messages

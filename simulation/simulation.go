@@ -97,7 +97,7 @@ func chat(nodes ...mvds.Node) {
 }
 
 func Calc(count uint64, lastTime int64) int64 {
-	return lastTime + int64(count)*2
+	return lastTime + 1
 }
 
 func peerId(n string) mvds.PeerId {
