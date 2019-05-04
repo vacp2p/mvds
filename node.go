@@ -57,13 +57,15 @@ func (n *Node) Run() {
 	// @todo start listening to both the send channel and what the transport receives for later handling
 
 	// @todo maybe some waiting?
-	for {
-		<-time.After(1 * time.Second)
-
-		go func() {
+	go func() {
+		for {
 			s, p := n.st.Watch()
 			n.onPayload(s, p)
-		}()
+		}
+	}()
+
+	for {
+		<-time.After(1 * time.Second)
 
 		go n.sendMessages() // @todo probably not that efficient here
 
