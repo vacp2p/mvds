@@ -62,6 +62,7 @@ func (n *Node) Run() {
 	for {
 		<-time.After(1 * time.Second)
 
+		// @todo should probably do a select statement
 		go func() {
 			s, p := n.st.Watch()
 			n.onPayload(s, p)
