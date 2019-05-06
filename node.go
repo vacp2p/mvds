@@ -270,7 +270,7 @@ func (n *Node) appendOfferedMessage(sender PeerId, id MessageID) {
 func (n *Node) updateSendTime(m MessageID, p PeerId) {
 	s := n.state(m, p)
 	s.SendCount += 1
-	s.SendTime = n.sc(s.SendCount, s.SendTime)
+	s.SendTime = n.sc(s.SendCount, n.time)
 }
 
 func (n Node) isPeerInGroup(g GroupID, p PeerId) bool {
