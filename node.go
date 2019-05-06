@@ -3,6 +3,7 @@ package mvds
 // @todo this is a very rough implementation that needs cleanup
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -57,12 +58,6 @@ func (n *Node) Run() {
 	// @todo start listening to both the send channel and what the transport receives for later handling
 
 	// @todo maybe some waiting?
-	//go func() {
-	//	for {
-	//		s, p := n.st.Watch()
-	//		n.onPayload(s, p)
-	//	}
-	//}()
 
 	for {
 		<-time.After(1 * time.Second)
@@ -73,14 +68,13 @@ func (n *Node) Run() {
 		}()
 
 		go n.sendMessages() // @todo probably not that efficient here
-
 		n.time += 1
 	}
 }
 
 func (n *Node) Send(data []byte) error {
-	//n.Lock()
-	//defer n.Unlock()
+	n.Lock()
+	defer n.Unlock()
 
 	m := Message{
 		GroupId:   n.group[:],
@@ -100,9 +94,9 @@ func (n *Node) Send(data []byte) error {
 			continue
 		}
 
-		s := n.state(id, p)
-		s.SendTime = n.time + 1
+		n.state(id, p).SendTime = n.time + 1
 	}
+
 
 	// @todo think about a way to insta trigger send messages when send was selected, we don't wanna wait for ticks here
 
@@ -149,23 +143,27 @@ func (n *Node) onOffer(sender PeerId, msg Offer) {
 		id := toMessageID(raw)
 		n.appendOfferedMessage(sender, id)
 		n.state(id, sender).HoldFlag = true
+		fmt.Printf("OFFER (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
 	}
 }
 
 func (n *Node) onRequest(sender PeerId, msg Request) {
 	for _, id := range msg.Id {
 		n.state(toMessageID(id), sender).RequestFlag = true
+		fmt.Printf("REQUEST (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
 	}
 }
 
 func (n *Node) onAck(sender PeerId, msg Ack) {
 	for _, id := range msg.Id {
 		n.state(toMessageID(id), sender).HoldFlag = true
+		fmt.Printf("ACK (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
 	}
 }
 
 func (n *Node) onMessage(sender PeerId, msg Message) {
-	s := n.state(msg.ID(), sender)
+	id := msg.ID()
+	s := n.state(id, sender)
 	s.HoldFlag = true
 	s.AckFlag = true
 
@@ -173,6 +171,8 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 	if err != nil {
 		// @todo process, should this function ever even have an error?
 	}
+
+	fmt.Printf("MESSAGE (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
 
 	// @todo push message somewhere for end user
 }
