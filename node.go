@@ -57,15 +57,20 @@ func (n *Node) Run() {
 	// @todo start listening to both the send channel and what the transport receives for later handling
 
 	// @todo maybe some waiting?
-	go func() {
-		for {
-			s, p := n.st.Watch()
-			n.onPayload(s, p)
-		}
-	}()
+	//go func() {
+	//	for {
+	//		s, p := n.st.Watch()
+	//		n.onPayload(s, p)
+	//	}
+	//}()
 
 	for {
 		<-time.After(1 * time.Second)
+
+		go func() {
+			s, p := n.st.Watch()
+			n.onPayload(s, p)
+		}()
 
 		go n.sendMessages() // @todo probably not that efficient here
 
@@ -74,8 +79,8 @@ func (n *Node) Run() {
 }
 
 func (n *Node) Send(data []byte) error {
-	n.Lock()
-	defer n.Unlock()
+	//n.Lock()
+	//defer n.Unlock()
 
 	m := Message{
 		GroupId:   n.group[:],
@@ -121,6 +126,7 @@ func (n *Node) sendMessages() {
 	pls := n.payloads()
 
 	for id, p := range pls {
+
 		err := n.st.Send(n.ID, id, *p)
 		if err != nil {
 			//	@todo
@@ -239,8 +245,8 @@ func (n *Node) payloads() map[PeerId]*Payload {
 }
 
 func (n *Node) state(id MessageID, sender PeerId) *State {
-	n.Lock()
-	defer n.Unlock()
+	//n.Lock()
+	//defer n.Unlock()
 
 	if _, ok := n.syncState[id]; !ok {
 		n.syncState[id] = make(map[PeerId]*State)
