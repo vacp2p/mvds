@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type calculateSendTime func(count uint64, lastTime int64) int64
+type calculateSendTime func(count uint64, time int64) int64
 type PeerId [32]byte
 
 type State struct {
