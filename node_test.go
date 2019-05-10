@@ -1,6 +1,8 @@
 package mvds
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"reflect"
 	"testing"
@@ -97,6 +99,7 @@ func getNodeForMessageHandlerTest() Node {
 	n := Node{}
 	n.syncState = make(map[GroupID]map[MessageID]map[PeerId]*State)
 	n.offeredMessages = make(map[GroupID]map[PeerId][]MessageID)
+	n.ID = randomPeerId()
 	return n
 }
 
@@ -111,11 +114,6 @@ func randomMessageId() MessageID {
 }
 
 func randomPeerId() PeerId {
-	bytes := make([]byte, 32)
-	rand.Read(bytes)
-
-	id := PeerId{}
-	copy(id[:], bytes)
-
-	return id
+	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	return PeerId(key.PublicKey)
 }

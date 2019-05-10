@@ -3,13 +3,17 @@ package mvds
 // @todo this is a very rough implementation that needs cleanup
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type calculateSendTime func(count uint64, time int64) int64
-type PeerId [32]byte
+type PeerId ecdsa.PublicKey
 
 type State struct {
 	HoldFlag    bool
@@ -32,7 +36,7 @@ type Node struct {
 
 	sc calculateSendTime
 
-	ID    PeerId
+	ID PeerId
 
 	time int64
 }
@@ -149,21 +153,21 @@ func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) {
 		id := toMessageID(raw)
 		n.offerMessage(group, sender, id)
 		n.state(group, id, sender).HoldFlag = true
-		fmt.Printf("[%s] OFFER (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
+		fmt.Printf("[%s] OFFER (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 	}
 }
 
 func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) {
 	for _, id := range msg.Id {
 		n.state(group, toMessageID(id), sender).RequestFlag = true
-		fmt.Printf("[%s] REQUEST (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
+		fmt.Printf("[%s] REQUEST (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 	}
 }
 
 func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	for _, id := range msg.Id {
 		n.state(group, toMessageID(id), sender).HoldFlag = true
-		fmt.Printf("[%s] ACK (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
+		fmt.Printf("[%s] ACK (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 	}
 }
 
@@ -178,7 +182,7 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) {
 		// @todo process, should this function ever even have an error?
 	}
 
-	fmt.Printf("[%s] MESSAGE (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
+	fmt.Printf("[%s] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 
 	// @todo push message somewhere for end user
 }
@@ -319,9 +323,18 @@ func toMessageID(b []byte) MessageID {
 
 func createPayload() *Payload {
 	return &Payload{
-		Ack: &Ack{Id: make([][]byte, 0)},
-		Offer: &Offer{Id: make([][]byte, 0)},
-		Request: &Request{Id: make([][]byte, 0)},
+		Ack:      &Ack{Id: make([][]byte, 0)},
+		Offer:    &Offer{Id: make([][]byte, 0)},
+		Request:  &Request{Id: make([][]byte, 0)},
 		Messages: make([]*Message, 0),
 	}
 }
+
+func (p PeerId) toBytes() []byte {
+	if p.X == nil || p.Y == nil {
+		return nil
+	}
+
+	return elliptic.Marshal(crypto.S256(), p.X, p.Y)
+}
+
