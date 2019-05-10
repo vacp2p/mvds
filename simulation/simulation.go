@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"time"
@@ -40,9 +43,9 @@ func main() {
 
 	group := groupId("meme kings")
 
-	na := createNode(at, peerId("a"))
-	nb := createNode(bt, peerId("b"))
-	nc := createNode(ct, peerId("c"))
+	na := createNode(at, peerId())
+	nb := createNode(bt, peerId())
+	nc := createNode(ct, peerId())
 
 	at.out[nb.ID] = bin
 	at.out[nc.ID] = cin
@@ -100,11 +103,9 @@ func Calc(count uint64, time int64) int64 {
 	return time + int64(count*2)
 }
 
-func peerId(n string) mvds.PeerId {
-	bytes := []byte(n)
-	id := mvds.PeerId{}
-	copy(id[:], bytes)
-	return id
+func peerId() mvds.PeerId {
+	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	return mvds.PeerId(key.PublicKey)
 }
 
 func groupId(n string) mvds.GroupID {
