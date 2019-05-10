@@ -337,4 +337,3 @@ func (p PeerId) toBytes() []byte {
 
 	return elliptic.Marshal(crypto.S256(), p.X, p.Y)
 }
-
