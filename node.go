@@ -123,11 +123,13 @@ func (n *Node) sendMessages() {
 
 	pls := n.payloads()
 
-	for id, p := range pls {
+	for g, payloads := range pls {
+		for id, p := range payloads {
 
-		err := n.st.Send(n.ID, id, *p)
-		if err != nil {
-			//	@todo
+			err := n.st.Send(g, n.ID, id, *p)
+			if err != nil {
+				//	@todo
+			}
 		}
 	}
 }
@@ -181,7 +183,7 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) {
 	// @todo push message somewhere for end user
 }
 
-func (n *Node) payloads() map[PeerId]*Payload {
+func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 	n.Lock()
 	defer n.Unlock()
 
