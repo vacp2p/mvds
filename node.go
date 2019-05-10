@@ -149,21 +149,21 @@ func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) {
 		id := toMessageID(raw)
 		n.offerMessage(group, sender, id)
 		n.state(group, id, sender).HoldFlag = true
-		fmt.Printf("OFFER (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
+		fmt.Printf("[%s] OFFER (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 	}
 }
 
 func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) {
 	for _, id := range msg.Id {
 		n.state(group, toMessageID(id), sender).RequestFlag = true
-		fmt.Printf("REQUEST (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
+		fmt.Printf("[%s] REQUEST (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 	}
 }
 
 func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	for _, id := range msg.Id {
 		n.state(group, toMessageID(id), sender).HoldFlag = true
-		fmt.Printf("ACK (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
+		fmt.Printf("[%s] ACK (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 	}
 }
 
@@ -178,7 +178,7 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) {
 		// @todo process, should this function ever even have an error?
 	}
 
-	fmt.Printf("MESSAGE (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
+	fmt.Printf("[%s] MESSAGE (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
 	// @todo push message somewhere for end user
 }
