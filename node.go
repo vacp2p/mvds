@@ -55,6 +55,7 @@ func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId) Nod
 	}
 }
 
+// Run listens for new messages received by the node and sends out those required every tick.
 func (n *Node) Run() {
 
 	// @todo start listening to both the send channel and what the transport receives for later handling
@@ -75,6 +76,7 @@ func (n *Node) Run() {
 	}
 }
 
+// Send sends a message to a given group.
 func (n *Node) Send(group GroupID, data []byte) error {
 	n.Lock()
 	defer n.Unlock()
@@ -107,6 +109,7 @@ func (n *Node) Send(group GroupID, data []byte) error {
 	return nil
 }
 
+// AddPeer adds a peer to a specific group making it a recipient of messages
 func (n *Node) AddPeer(group GroupID, id PeerId) {
 	if _, ok := n.peers[group]; !ok {
 		n.peers[group] = make([]PeerId, 0)
