@@ -8,46 +8,41 @@ import (
 	"github.com/status-im/mvds"
 )
 
-type packet struct {
-	sender  mvds.PeerId
-	payload mvds.Payload
-}
-
 type Transport struct {
-	in  <-chan packet
-	out map[mvds.PeerId]chan<- packet
+	in  <-chan mvds.Packet
+	out map[mvds.PeerId]chan<- mvds.Packet
 }
 
-func (t *Transport) Watch() (mvds.PeerId, mvds.Payload) {
+func (t *Transport) Watch() mvds.Packet {
 	p := <-t.in
-	return p.sender, p.payload
+	return p
 }
 
-func (t *Transport) Send(sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
+func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
 	c, ok := t.out[peer]
 	if !ok {
 		return errors.New("peer unknown")
 	}
 
-	c <- packet{sender: sender, payload: payload}
+	c <- mvds.Packet{Group: group, Sender: sender, Payload: payload}
 	return nil
 }
 
 func main() {
 
-	ain := make(chan packet)
-	bin := make(chan packet)
-	cin := make(chan packet)
+	ain := make(chan mvds.Packet)
+	bin := make(chan mvds.Packet)
+	cin := make(chan mvds.Packet)
 
-	at := &Transport{in: ain, out: make(map[mvds.PeerId]chan<- packet)}
-	bt := &Transport{in: bin, out: make(map[mvds.PeerId]chan<- packet)}
-	ct := &Transport{in: cin, out: make(map[mvds.PeerId]chan<- packet)}
+	at := &Transport{in: ain, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
+	bt := &Transport{in: bin, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
+	ct := &Transport{in: cin, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
 
 	group := groupId("meme kings")
 
-	na := createNode(at, peerId("a"), group)
-	nb := createNode(bt, peerId("b"), group)
-	nc := createNode(ct, peerId("c"), group)
+	na := createNode(at, peerId("a"))
+	nb := createNode(bt, peerId("b"))
+	nc := createNode(ct, peerId("c"))
 
 	at.out[nb.ID] = bin
 	at.out[nc.ID] = cin
@@ -58,14 +53,14 @@ func main() {
 	ct.out[na.ID] = ain
 	ct.out[nb.ID] = bin
 
-	na.AddPeer(nb.ID)
-	na.AddPeer(nc.ID)
+	na.AddPeer(group, nb.ID)
+	na.AddPeer(group, nc.ID)
 
-	nb.AddPeer(na.ID)
-	nb.AddPeer(nc.ID)
+	nb.AddPeer(group, na.ID)
+	nb.AddPeer(group, nc.ID)
 
-	nc.AddPeer(na.ID)
-	nc.AddPeer(nb.ID)
+	nc.AddPeer(group, na.ID)
+	nc.AddPeer(group, nb.ID)
 
 	na.Share(group, nb.ID)
 	na.Share(group, nc.ID)
@@ -80,20 +75,20 @@ func main() {
 	go nb.Run()
 	go nc.Run()
 
-	chat(na, nb)
+	chat(group, na, nb)
 }
 
-func createNode(transport *Transport, id mvds.PeerId, groupID mvds.GroupID) mvds.Node {
+func createNode(transport *Transport, id mvds.PeerId) mvds.Node {
 	ds := mvds.NewDummyStore()
-	return mvds.NewNode(&ds, transport, Calc, id, groupID)
+	return mvds.NewNode(&ds, transport, Calc, id)
 }
 
-func chat(nodes ...mvds.Node) {
+func chat(group mvds.GroupID, nodes ...mvds.Node) {
 	for {
 		<-time.After(5 * time.Second)
 
 		for _, n := range nodes {
-			err := n.Send([]byte("test"))
+			err := n.Send(group, []byte("test"))
 			if err != nil {
 				fmt.Println(err)
 			}

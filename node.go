@@ -25,30 +25,28 @@ type Node struct {
 	ms MessageStore
 	st Transport
 
-	syncState       map[MessageID]map[PeerId]*State
-	offeredMessages map[PeerId][]MessageID
+	syncState       map[GroupID]map[MessageID]map[PeerId]*State
+	offeredMessages map[GroupID]map[PeerId][]MessageID
 	sharing         map[GroupID][]PeerId
-	peers           []PeerId
+	peers           map[GroupID][]PeerId
 
 	sc calculateSendTime
 
 	ID    PeerId
-	group GroupID
 
 	time int64
 }
 
-func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId, group GroupID) Node {
+func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId) Node {
 	return Node{
 		ms:              ms,
 		st:              st,
-		syncState:       make(map[MessageID]map[PeerId]*State),
-		offeredMessages: make(map[PeerId][]MessageID),
+		syncState:       make(map[GroupID]map[MessageID]map[PeerId]*State),
+		offeredMessages: make(map[GroupID]map[PeerId][]MessageID),
 		sharing:         make(map[GroupID][]PeerId),
-		peers:           make([]PeerId, 0),
+		peers:           make(map[GroupID][]PeerId),
 		sc:              sc,
 		ID:              id,
-		group:           group,
 		time:            0,
 	}
 }
@@ -64,8 +62,8 @@ func (n *Node) Run() {
 
 		// @todo should probably do a select statement
 		go func() {
-			s, p := n.st.Watch()
-			n.onPayload(s, p)
+			p := n.st.Watch()
+			n.onPayload(p.Group, p.Sender, p.Payload)
 		}()
 
 		go n.sendMessages() // @todo probably not that efficient here
@@ -73,12 +71,12 @@ func (n *Node) Run() {
 	}
 }
 
-func (n *Node) Send(data []byte) error {
+func (n *Node) Send(group GroupID, data []byte) error {
 	n.Lock()
 	defer n.Unlock()
 
 	m := Message{
-		GroupId:   n.group[:],
+		GroupId:   group[:],
 		Timestamp: time.Now().Unix(),
 		Body:      data,
 	}
@@ -90,22 +88,27 @@ func (n *Node) Send(data []byte) error {
 
 	id := m.ID()
 
-	for _, p := range n.peers {
-		if !n.isPeerInGroup(n.group, p) {
-			continue
+	for g, peers := range n.peers {
+		for _, p := range peers {
+			if !n.isPeerInGroup(group, p) {
+				continue
+			}
+
+			n.state(g, id, p).SendTime = n.time + 1
 		}
-
-		n.state(id, p).SendTime = n.time + 1
 	}
-
 
 	// @todo think about a way to insta trigger send messages when send was selected, we don't wanna wait for ticks here
 
 	return nil
 }
 
-func (n *Node) AddPeer(id PeerId) {
-	n.peers = append(n.peers, id)
+func (n *Node) AddPeer(group GroupID, id PeerId) {
+	if _, ok := n.peers[group]; !ok {
+		n.peers[group] = make([]PeerId, 0)
+	}
+
+	n.peers[group] = append(n.peers[group], id)
 }
 
 func (n *Node) Share(group GroupID, id PeerId) {
@@ -120,51 +123,53 @@ func (n *Node) sendMessages() {
 
 	pls := n.payloads()
 
-	for id, p := range pls {
+	for g, payloads := range pls {
+		for id, p := range payloads {
 
-		err := n.st.Send(n.ID, id, *p)
-		if err != nil {
-			//	@todo
+			err := n.st.Send(g, n.ID, id, *p)
+			if err != nil {
+				//	@todo
+			}
 		}
 	}
 }
 
-func (n *Node) onPayload(sender PeerId, payload Payload) {
-	n.onAck(sender, *payload.Ack)
-	n.onRequest(sender, *payload.Request)
-	n.onOffer(sender, *payload.Offer)
+func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
+	n.onAck(group, sender, *payload.Ack)
+	n.onRequest(group, sender, *payload.Request)
+	n.onOffer(group, sender, *payload.Offer)
 
 	for _, m := range payload.Messages {
-		n.onMessage(sender, *m)
+		n.onMessage(group, sender, *m)
 	}
 }
 
-func (n *Node) onOffer(sender PeerId, msg Offer) {
+func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
-		n.appendOfferedMessage(sender, id)
-		n.state(id, sender).HoldFlag = true
-		fmt.Printf("OFFER (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
+		n.offerMessage(group, sender, id)
+		n.state(group, id, sender).HoldFlag = true
+		fmt.Printf("[%s] OFFER (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 	}
 }
 
-func (n *Node) onRequest(sender PeerId, msg Request) {
+func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) {
 	for _, id := range msg.Id {
-		n.state(toMessageID(id), sender).RequestFlag = true
-		fmt.Printf("REQUEST (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
+		n.state(group, toMessageID(id), sender).RequestFlag = true
+		fmt.Printf("[%s] REQUEST (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 	}
 }
 
-func (n *Node) onAck(sender PeerId, msg Ack) {
+func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	for _, id := range msg.Id {
-		n.state(toMessageID(id), sender).HoldFlag = true
-		fmt.Printf("ACK (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
+		n.state(group, toMessageID(id), sender).HoldFlag = true
+		fmt.Printf("[%s] ACK (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 	}
 }
 
-func (n *Node) onMessage(sender PeerId, msg Message) {
+func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) {
 	id := msg.ID()
-	s := n.state(id, sender)
+	s := n.state(group, id, sender)
 	s.HoldFlag = true
 	s.AckFlag = true
 
@@ -173,70 +178,83 @@ func (n *Node) onMessage(sender PeerId, msg Message) {
 		// @todo process, should this function ever even have an error?
 	}
 
-	fmt.Printf("MESSAGE (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
+	fmt.Printf("[%s] MESSAGE (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
 	// @todo push message somewhere for end user
 }
 
-func (n *Node) payloads() map[PeerId]*Payload {
+func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 	n.Lock()
 	defer n.Unlock()
 
-	pls := make(map[PeerId]*Payload)
+	pls := make(map[GroupID]map[PeerId]*Payload)
 
 	// Ack offered Messages
-	for peer, messages := range n.offeredMessages {
-		if _, ok := pls[peer]; !ok {
-			pls[peer] = createPayload()
-		}
-
-		for _, id := range messages {
-			// Ack offered Messages
-			if n.ms.HasMessage(id) && n.syncState[id][peer].AckFlag {
-				n.syncState[id][peer].AckFlag = false
-				pls[peer].Ack.Id = append(pls[peer].Ack.Id, id[:])
+	for group, offers := range n.offeredMessages {
+		for peer, messages := range offers {
+			// @todo do we need this?
+			if _, ok := pls[group]; !ok {
+				pls[group] = make(map[PeerId]*Payload)
 			}
 
-			// Request offered Messages
-			if !n.ms.HasMessage(id) && n.state(id, peer).SendTime <= n.time {
-				pls[peer].Request.Id = append(pls[peer].Request.Id, id[:])
-				n.syncState[id][peer].HoldFlag = true
-				n.updateSendTime(id, peer)
+			if _, ok := pls[group][peer]; !ok {
+				pls[group][peer] = createPayload()
+			}
+
+			for _, id := range messages {
+				// Ack offered Messages
+				if n.ms.HasMessage(id) && n.syncState[group][id][peer].AckFlag {
+					n.syncState[group][id][peer].AckFlag = false
+					pls[group][peer].Ack.Id = append(pls[group][peer].Ack.Id, id[:])
+				}
+
+				// Request offered Messages
+				if !n.ms.HasMessage(id) && n.state(group, id, peer).SendTime <= n.time {
+					pls[group][peer].Request.Id = append(pls[group][peer].Request.Id, id[:])
+					n.syncState[group][id][peer].HoldFlag = true
+					n.updateSendTime(group, id, peer)
+				}
 			}
 		}
 	}
 
-	for id, peers := range n.syncState {
-		for peer, s := range peers {
-			if _, ok := pls[peer]; !ok {
-				pls[peer] = createPayload()
-			}
-
-			// Ack sent Messages
-			if s.AckFlag {
-				pls[peer].Ack.Id = append(pls[peer].Ack.Id, id[:])
-				s.AckFlag = false
-			}
-
-			if n.isPeerInGroup(n.group, peer) && s.SendTime <= n.time {
-				// Offer Messages
-				if !s.HoldFlag {
-					pls[peer].Offer.Id = append(pls[peer].Offer.Id, id[:])
-					n.updateSendTime(id, peer)
-
-					// @todo do we wanna send messages like in interactive mode?
+	for group, syncstate := range n.syncState {
+		for id, peers := range syncstate {
+			for peer, s := range peers {
+				if _, ok := pls[group]; !ok {
+					pls[group] = make(map[PeerId]*Payload)
 				}
 
-				// send requested Messages
-				if s.RequestFlag {
-					m, err := n.ms.GetMessage(id)
-					if err != nil {
-						// @todo
+				if _, ok := pls[group][peer]; !ok {
+					pls[group][peer] = createPayload()
+				}
+
+				// Ack sent Messages
+				if s.AckFlag {
+					pls[group][peer].Ack.Id = append(pls[group][peer].Ack.Id, id[:])
+					s.AckFlag = false
+				}
+
+				if n.isPeerInGroup(group, peer) && s.SendTime <= n.time {
+					// Offer Messages
+					if !s.HoldFlag {
+						pls[group][peer].Offer.Id = append(pls[group][peer].Offer.Id, id[:])
+						n.updateSendTime(group, id, peer)
+
+						// @todo do we wanna send messages like in interactive mode?
 					}
 
-					pls[peer].Messages = append(pls[peer].Messages, &m)
-					n.updateSendTime(id, peer)
-					s.RequestFlag = false
+					// send requested Messages
+					if s.RequestFlag {
+						m, err := n.ms.GetMessage(id)
+						if err != nil {
+							// @todo
+						}
+
+						pls[group][peer].Messages = append(pls[group][peer].Messages, &m)
+						n.updateSendTime(group, id, peer)
+						s.RequestFlag = false
+					}
 				}
 			}
 		}
@@ -245,31 +263,40 @@ func (n *Node) payloads() map[PeerId]*Payload {
 	return pls
 }
 
-func (n *Node) state(id MessageID, sender PeerId) *State {
+func (n *Node) state(group GroupID, id MessageID, sender PeerId) *State {
 	//n.Lock()
 	//defer n.Unlock()
 
-	if _, ok := n.syncState[id]; !ok {
-		n.syncState[id] = make(map[PeerId]*State)
+	// @todo check if we need this
+	if _, ok := n.syncState[group]; !ok {
+		n.syncState[group] = make(map[MessageID]map[PeerId]*State)
 	}
 
-	if _, ok := n.syncState[id][sender]; !ok {
-		n.syncState[id][sender] = &State{}
+	if _, ok := n.syncState[group][id]; !ok {
+		n.syncState[group][id] = make(map[PeerId]*State)
 	}
 
-	return n.syncState[id][sender]
+	if _, ok := n.syncState[group][id][sender]; !ok {
+		n.syncState[group][id][sender] = &State{}
+	}
+
+	return n.syncState[group][id][sender]
 }
 
-func (n *Node) appendOfferedMessage(sender PeerId, id MessageID) {
-	if _, ok := n.offeredMessages[sender]; !ok {
-		n.offeredMessages[sender] = make([]MessageID, 0)
+func (n *Node) offerMessage(group GroupID, sender PeerId, id MessageID) {
+	if _, ok := n.offeredMessages[group]; !ok {
+		n.offeredMessages[group] = make(map[PeerId][]MessageID)
 	}
 
-	n.offeredMessages[sender] = append(n.offeredMessages[sender], id)
+	if _, ok := n.offeredMessages[group][sender]; !ok {
+		n.offeredMessages[group][sender] = make([]MessageID, 0)
+	}
+
+	n.offeredMessages[group][sender] = append(n.offeredMessages[group][sender], id)
 }
 
-func (n *Node) updateSendTime(m MessageID, p PeerId) {
-	s := n.state(m, p)
+func (n *Node) updateSendTime(g GroupID, m MessageID, p PeerId) {
+	s := n.state(g, m, p)
 	s.SendCount += 1
 	s.SendTime = n.sc(s.SendCount, n.time)
 }
