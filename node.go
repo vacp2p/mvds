@@ -62,8 +62,8 @@ func (n *Node) Run() {
 
 		// @todo should probably do a select statement
 		go func() {
-			s, p := n.st.Watch()
-			n.onPayload(s, p)
+			p := n.st.Watch()
+			n.onPayload(p.Group, p.Sender, p.Payload)
 		}()
 
 		go n.sendMessages() // @todo probably not that efficient here
@@ -71,12 +71,12 @@ func (n *Node) Run() {
 	}
 }
 
-func (n *Node) Send(data []byte) error {
+func (n *Node) Send(group GroupID, data []byte) error {
 	n.Lock()
 	defer n.Unlock()
 
 	m := Message{
-		GroupId:   n.group[:],
+		GroupId:   group[:],
 		Timestamp: time.Now().Unix(),
 		Body:      data,
 	}
@@ -88,14 +88,15 @@ func (n *Node) Send(data []byte) error {
 
 	id := m.ID()
 
-	for _, p := range n.peers {
-		if !n.isPeerInGroup(n.group, p) {
-			continue
+	for g, peers := range n.peers {
+		for _, p := range peers {
+			if !n.isPeerInGroup(group, p) {
+				continue
+			}
+
+			n.state(g, id, p).SendTime = n.time + 1
 		}
-
-		n.state(id, p).SendTime = n.time + 1
 	}
-
 
 	// @todo think about a way to insta trigger send messages when send was selected, we don't wanna wait for ticks here
 
@@ -131,42 +132,42 @@ func (n *Node) sendMessages() {
 	}
 }
 
-func (n *Node) onPayload(sender PeerId, payload Payload) {
-	n.onAck(sender, *payload.Ack)
-	n.onRequest(sender, *payload.Request)
-	n.onOffer(sender, *payload.Offer)
+func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
+	n.onAck(group, sender, *payload.Ack)
+	n.onRequest(group, sender, *payload.Request)
+	n.onOffer(group, sender, *payload.Offer)
 
 	for _, m := range payload.Messages {
-		n.onMessage(sender, *m)
+		n.onMessage(group, sender, *m)
 	}
 }
 
-func (n *Node) onOffer(sender PeerId, msg Offer) {
+func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
-		n.offerMessage(sender, id)
-		n.state(id, sender).HoldFlag = true
+		n.offerMessage(group, sender, id)
+		n.state(group, id, sender).HoldFlag = true
 		fmt.Printf("OFFER (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
 	}
 }
 
-func (n *Node) onRequest(sender PeerId, msg Request) {
+func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) {
 	for _, id := range msg.Id {
-		n.state(toMessageID(id), sender).RequestFlag = true
+		n.state(group, toMessageID(id), sender).RequestFlag = true
 		fmt.Printf("REQUEST (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
 	}
 }
 
-func (n *Node) onAck(sender PeerId, msg Ack) {
+func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	for _, id := range msg.Id {
-		n.state(toMessageID(id), sender).HoldFlag = true
+		n.state(group, toMessageID(id), sender).HoldFlag = true
 		fmt.Printf("ACK (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
 	}
 }
 
-func (n *Node) onMessage(sender PeerId, msg Message) {
+func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) {
 	id := msg.ID()
-	s := n.state(id, sender)
+	s := n.state(group, id, sender)
 	s.HoldFlag = true
 	s.AckFlag = true
 
