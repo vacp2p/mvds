@@ -9,6 +9,7 @@ import (
 
 func TestOnRequest(t *testing.T) {
 	m := randomMessageId()
+	g := GroupID{}
 
 	r := Request{}
 	r.Id = append(r.Id, m[:])
@@ -16,15 +17,16 @@ func TestOnRequest(t *testing.T) {
 	n := getNodeForMessageHandlerTest()
 
 	p := randomPeerId()
-	n.onRequest(p, r)
+	n.onRequest(g, p, r)
 
-	if n.state(m, p).RequestFlag != true {
+	if n.state(g, m, p).RequestFlag != true {
 		t.Errorf("did not set Request flag to true")
 	}
 }
 
 func TestOnAck(t *testing.T) {
 	m := randomMessageId()
+	g := GroupID{}
 
 	a := Ack{}
 	a.Id = append(a.Id, m[:])
@@ -32,15 +34,16 @@ func TestOnAck(t *testing.T) {
 	n := getNodeForMessageHandlerTest()
 
 	p := randomPeerId()
-	n.onAck(p, a)
+	n.onAck(g, p, a)
 
-	if n.state(m, p).HoldFlag != true {
+	if n.state(g, m, p).HoldFlag != true {
 		t.Errorf("did not set Hold flag to true")
 	}
 }
 
 func TestOnOffer(t *testing.T) {
 	m := randomMessageId()
+	g := GroupID{}
 
 	o := Offer{}
 	o.Id = append(o.Id, m[:])
@@ -48,19 +51,20 @@ func TestOnOffer(t *testing.T) {
 	n := getNodeForMessageHandlerTest()
 
 	p := randomPeerId()
-	n.onOffer(p, o)
+	n.onOffer(g, p, o)
 
-	if n.state(m, p).HoldFlag != true {
+	if n.state(g, m, p).HoldFlag != true {
 		t.Errorf("did not set Hold flag to true")
 	}
 
-	if n.offeredMessages[p][0] != m {
+	if n.offeredMessages[g][p][0] != m {
 		t.Errorf("message was not added to offered list")
 	}
 }
 
 func TestOnMessage(t *testing.T) {
 	n := getNodeForMessageHandlerTest()
+	g := GroupID{}
 
 	ds := NewDummyStore()
 	n.ms = &ds
@@ -75,14 +79,14 @@ func TestOnMessage(t *testing.T) {
 
 	p := randomPeerId()
 
-	n.onMessage(p, m)
+	n.onMessage(g, p, m)
 
 	sm, _ := n.ms.GetMessage(m.ID())
 	if !reflect.DeepEqual(sm, m) {
 		t.Errorf("message was not stored correctly")
 	}
 
-	s := n.state(m.ID(), p)
+	s := n.state(g, m.ID(), p)
 
 	if s.HoldFlag != true || s.AckFlag != true {
 		t.Errorf("did not set flags")
@@ -91,8 +95,8 @@ func TestOnMessage(t *testing.T) {
 
 func getNodeForMessageHandlerTest() Node {
 	n := Node{}
-	n.syncState = make(map[MessageID]map[PeerId]*State)
-	n.offeredMessages = make(map[PeerId][]MessageID)
+	n.syncState = make(map[GroupID]map[MessageID]map[PeerId]*State)
+	n.offeredMessages = make(map[GroupID]map[PeerId][]MessageID)
 	return n
 }
 
