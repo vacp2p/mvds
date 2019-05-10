@@ -190,58 +190,71 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 	pls := make(map[GroupID]map[PeerId]*Payload)
 
 	// Ack offered Messages
-	for peer, messages := range n.offeredMessages {
-		if _, ok := pls[peer]; !ok {
-			pls[peer] = createPayload()
-		}
-
-		for _, id := range messages {
-			// Ack offered Messages
-			if n.ms.HasMessage(id) && n.syncState[id][peer].AckFlag {
-				n.syncState[id][peer].AckFlag = false
-				pls[peer].Ack.Id = append(pls[peer].Ack.Id, id[:])
+	for group, offers := range n.offeredMessages {
+		for peer, messages := range offers {
+			// @todo do we need this?
+			if _, ok := pls[group]; !ok {
+				pls[group] = make(map[PeerId]*Payload)
 			}
 
-			// Request offered Messages
-			if !n.ms.HasMessage(id) && n.state(id, peer).SendTime <= n.time {
-				pls[peer].Request.Id = append(pls[peer].Request.Id, id[:])
-				n.syncState[id][peer].HoldFlag = true
-				n.updateSendTime(id, peer)
+			if _, ok := pls[group][peer]; !ok {
+				pls[group][peer] = createPayload()
+			}
+
+			for _, id := range messages {
+				// Ack offered Messages
+				if n.ms.HasMessage(id) && n.syncState[group][id][peer].AckFlag {
+					n.syncState[group][id][peer].AckFlag = false
+					pls[group][peer].Ack.Id = append(pls[group][peer].Ack.Id, id[:])
+				}
+
+				// Request offered Messages
+				if !n.ms.HasMessage(id) && n.state(group, id, peer).SendTime <= n.time {
+					pls[group][peer].Request.Id = append(pls[group][peer].Request.Id, id[:])
+					n.syncState[group][id][peer].HoldFlag = true
+					n.updateSendTime(group, id, peer)
+				}
 			}
 		}
 	}
 
-	for id, peers := range n.syncState {
-		for peer, s := range peers {
-			if _, ok := pls[peer]; !ok {
-				pls[peer] = createPayload()
-			}
-
-			// Ack sent Messages
-			if s.AckFlag {
-				pls[peer].Ack.Id = append(pls[peer].Ack.Id, id[:])
-				s.AckFlag = false
-			}
-
-			if n.isPeerInGroup(n.group, peer) && s.SendTime <= n.time {
-				// Offer Messages
-				if !s.HoldFlag {
-					pls[peer].Offer.Id = append(pls[peer].Offer.Id, id[:])
-					n.updateSendTime(id, peer)
-
-					// @todo do we wanna send messages like in interactive mode?
+	for group, syncstate := range n.syncState {
+		for id, peers := range syncstate {
+			for peer, s := range peers {
+				if _, ok := pls[group]; !ok {
+					pls[group] = make(map[PeerId]*Payload)
 				}
 
-				// send requested Messages
-				if s.RequestFlag {
-					m, err := n.ms.GetMessage(id)
-					if err != nil {
-						// @todo
+				if _, ok := pls[group][peer]; !ok {
+					pls[group][peer] = createPayload()
+				}
+
+				// Ack sent Messages
+				if s.AckFlag {
+					pls[group][peer].Ack.Id = append(pls[group][peer].Ack.Id, id[:])
+					s.AckFlag = false
+				}
+
+				if n.isPeerInGroup(group, peer) && s.SendTime <= n.time {
+					// Offer Messages
+					if !s.HoldFlag {
+						pls[group][peer].Offer.Id = append(pls[group][peer].Offer.Id, id[:])
+						n.updateSendTime(group, id, peer)
+
+						// @todo do we wanna send messages like in interactive mode?
 					}
 
-					pls[peer].Messages = append(pls[peer].Messages, &m)
-					n.updateSendTime(id, peer)
-					s.RequestFlag = false
+					// send requested Messages
+					if s.RequestFlag {
+						m, err := n.ms.GetMessage(id)
+						if err != nil {
+							// @todo
+						}
+
+						pls[group][peer].Messages = append(pls[group][peer].Messages, &m)
+						n.updateSendTime(group, id, peer)
+						s.RequestFlag = false
+					}
 				}
 			}
 		}
