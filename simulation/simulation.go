@@ -45,9 +45,9 @@ func main() {
 
 	group := groupId("meme kings")
 
-	na := createNode(at, peerId("a"), group)
-	nb := createNode(bt, peerId("b"), group)
-	nc := createNode(ct, peerId("c"), group)
+	na := createNode(at, peerId("a"))
+	nb := createNode(bt, peerId("b"))
+	nc := createNode(ct, peerId("c"))
 
 	at.out[nb.ID] = bin
 	at.out[nc.ID] = cin
@@ -58,14 +58,14 @@ func main() {
 	ct.out[na.ID] = ain
 	ct.out[nb.ID] = bin
 
-	na.AddPeer(nb.ID)
-	na.AddPeer(nc.ID)
+	na.AddPeer(group, nb.ID)
+	na.AddPeer(group, nc.ID)
 
-	nb.AddPeer(na.ID)
-	nb.AddPeer(nc.ID)
+	nb.AddPeer(group, na.ID)
+	nb.AddPeer(group, nc.ID)
 
-	nc.AddPeer(na.ID)
-	nc.AddPeer(nb.ID)
+	nc.AddPeer(group, na.ID)
+	nc.AddPeer(group, nb.ID)
 
 	na.Share(group, nb.ID)
 	na.Share(group, nc.ID)
@@ -83,9 +83,9 @@ func main() {
 	chat(na, nb)
 }
 
-func createNode(transport *Transport, id mvds.PeerId, groupID mvds.GroupID) mvds.Node {
+func createNode(transport *Transport, id mvds.PeerId) mvds.Node {
 	ds := mvds.NewDummyStore()
-	return mvds.NewNode(&ds, transport, Calc, id, groupID)
+	return mvds.NewNode(&ds, transport, Calc, id)
 }
 
 func chat(nodes ...mvds.Node) {

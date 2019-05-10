@@ -25,30 +25,28 @@ type Node struct {
 	ms MessageStore
 	st Transport
 
-	syncState       map[MessageID]map[PeerId]*State
-	offeredMessages map[PeerId][]MessageID
+	syncState       map[GroupID]map[MessageID]map[PeerId]*State
+	offeredMessages map[GroupID]map[PeerId][]MessageID
 	sharing         map[GroupID][]PeerId
-	peers           []PeerId
+	peers           map[GroupID][]PeerId
 
 	sc calculateSendTime
 
 	ID    PeerId
-	group GroupID
 
 	time int64
 }
 
-func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId, group GroupID) Node {
+func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId) Node {
 	return Node{
 		ms:              ms,
 		st:              st,
-		syncState:       make(map[MessageID]map[PeerId]*State),
-		offeredMessages: make(map[PeerId][]MessageID),
+		syncState:       make(map[GroupID]map[MessageID]map[PeerId]*State),
+		offeredMessages: make(map[GroupID]map[PeerId][]MessageID),
 		sharing:         make(map[GroupID][]PeerId),
-		peers:           make([]PeerId, 0),
+		peers:           make(map[GroupID][]PeerId),
 		sc:              sc,
 		ID:              id,
-		group:           group,
 		time:            0,
 	}
 }
@@ -104,8 +102,12 @@ func (n *Node) Send(data []byte) error {
 	return nil
 }
 
-func (n *Node) AddPeer(id PeerId) {
-	n.peers = append(n.peers, id)
+func (n *Node) AddPeer(group GroupID, id PeerId) {
+	if _, ok := n.peers[group]; !ok {
+		n.peers[group] = make([]PeerId, 0)
+	}
+
+	n.peers[group] = append(n.peers[group], id)
 }
 
 func (n *Node) Share(group GroupID, id PeerId) {
@@ -142,7 +144,7 @@ func (n *Node) onPayload(sender PeerId, payload Payload) {
 func (n *Node) onOffer(sender PeerId, msg Offer) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
-		n.appendOfferedMessage(sender, id)
+		n.offerMessage(sender, id)
 		n.state(id, sender).HoldFlag = true
 		fmt.Printf("OFFER (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
 	}
@@ -182,7 +184,7 @@ func (n *Node) payloads() map[PeerId]*Payload {
 	n.Lock()
 	defer n.Unlock()
 
-	pls := make(map[PeerId]*Payload)
+	pls := make(map[GroupID]map[PeerId]*Payload)
 
 	// Ack offered Messages
 	for peer, messages := range n.offeredMessages {
@@ -245,31 +247,40 @@ func (n *Node) payloads() map[PeerId]*Payload {
 	return pls
 }
 
-func (n *Node) state(id MessageID, sender PeerId) *State {
+func (n *Node) state(group GroupID, id MessageID, sender PeerId) *State {
 	//n.Lock()
 	//defer n.Unlock()
 
-	if _, ok := n.syncState[id]; !ok {
-		n.syncState[id] = make(map[PeerId]*State)
+	// @todo check if we need this
+	if _, ok := n.syncState[group]; !ok {
+		n.syncState[group] = make(map[MessageID]map[PeerId]*State)
 	}
 
-	if _, ok := n.syncState[id][sender]; !ok {
-		n.syncState[id][sender] = &State{}
+	if _, ok := n.syncState[group][id]; !ok {
+		n.syncState[group][id] = make(map[PeerId]*State)
 	}
 
-	return n.syncState[id][sender]
+	if _, ok := n.syncState[group][id][sender]; !ok {
+		n.syncState[group][id][sender] = &State{}
+	}
+
+	return n.syncState[group][id][sender]
 }
 
-func (n *Node) appendOfferedMessage(sender PeerId, id MessageID) {
-	if _, ok := n.offeredMessages[sender]; !ok {
-		n.offeredMessages[sender] = make([]MessageID, 0)
+func (n *Node) offerMessage(group GroupID, sender PeerId, id MessageID) {
+	if _, ok := n.offeredMessages[group]; !ok {
+		n.offeredMessages[group] = make(map[PeerId][]MessageID)
 	}
 
-	n.offeredMessages[sender] = append(n.offeredMessages[sender], id)
+	if _, ok := n.offeredMessages[group][sender]; !ok {
+		n.offeredMessages[group][sender] = make([]MessageID, 0)
+	}
+
+	n.offeredMessages[group][sender] = append(n.offeredMessages[group][sender], id)
 }
 
-func (n *Node) updateSendTime(m MessageID, p PeerId) {
-	s := n.state(m, p)
+func (n *Node) updateSendTime(g GroupID, m MessageID, p PeerId) {
+	s := n.state(g, m, p)
 	s.SendCount += 1
 	s.SendTime = n.sc(s.SendCount, n.time)
 }
