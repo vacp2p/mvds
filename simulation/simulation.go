@@ -8,11 +8,6 @@ import (
 	"github.com/status-im/mvds"
 )
 
-type packet struct {
-	sender  mvds.PeerId
-	payload mvds.Payload
-}
-
 type Transport struct {
 	in  <-chan mvds.Packet
 	out map[mvds.PeerId]chan<- mvds.Packet
