@@ -76,8 +76,8 @@ func (n *Node) Run() {
 	}
 }
 
-// Send sends a message to a given group.
-func (n *Node) Send(group GroupID, data []byte) error {
+// AppendMessage sends a message to a given group.
+func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 	n.Lock()
 	defer n.Unlock()
 
@@ -89,7 +89,7 @@ func (n *Node) Send(group GroupID, data []byte) error {
 
 	err := n.ms.SaveMessage(m)
 	if err != nil {
-		return err
+		return MessageID{}, err
 	}
 
 	id := m.ID()
@@ -106,7 +106,7 @@ func (n *Node) Send(group GroupID, data []byte) error {
 
 	// @todo think about a way to insta trigger send messages when send was selected, we don't wanna wait for ticks here
 
-	return nil
+	return id, nil
 }
 
 // AddPeer adds a peer to a specific group making it a recipient of messages

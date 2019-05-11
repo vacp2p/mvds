@@ -91,7 +91,7 @@ func chat(group mvds.GroupID, nodes ...mvds.Node) {
 		<-time.After(5 * time.Second)
 
 		for _, n := range nodes {
-			err := n.Send(group, []byte("test"))
+			err := n.AppendMessage(group, []byte("test"))
 			if err != nil {
 				fmt.Println(err)
 			}
