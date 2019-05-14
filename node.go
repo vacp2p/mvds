@@ -41,8 +41,8 @@ type Node struct {
 	time int64
 }
 
-func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId) Node {
-	return Node{
+func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId) *Node {
+	return &Node{
 		ms:              ms,
 		st:              st,
 		syncState:       make(map[GroupID]map[MessageID]map[PeerId]*State),
@@ -66,6 +66,7 @@ func (n *Node) Run() {
 		<-time.After(1 * time.Second)
 
 		// @todo should probably do a select statement
+		// @todo this is done very badly
 		go func() {
 			p := n.st.Watch()
 			n.onPayload(p.Group, p.Sender, p.Payload)
