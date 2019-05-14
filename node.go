@@ -41,8 +41,8 @@ type Node struct {
 	time int64
 }
 
-func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId) Node {
-	return Node{
+func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId) *Node {
+	return &Node{
 		ms:              ms,
 		st:              st,
 		syncState:       make(map[GroupID]map[MessageID]map[PeerId]*State),

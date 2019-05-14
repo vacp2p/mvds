@@ -81,12 +81,12 @@ func main() {
 	chat(group, na, nb)
 }
 
-func createNode(transport *Transport, id mvds.PeerId) mvds.Node {
+func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
 	ds := mvds.NewDummyStore()
 	return mvds.NewNode(&ds, transport, Calc, id)
 }
 
-func chat(group mvds.GroupID, nodes ...mvds.Node) {
+func chat(group mvds.GroupID, nodes ...*mvds.Node) {
 	for {
 		<-time.After(5 * time.Second)
 
