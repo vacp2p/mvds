@@ -6,12 +6,15 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/status-im/mvds"
 )
 
 type Transport struct {
+	sync.Mutex
+
 	in  <-chan mvds.Packet
 	out map[mvds.PeerId]chan<- mvds.Packet
 }
@@ -22,6 +25,9 @@ func (t *Transport) Watch() mvds.Packet {
 }
 
 func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
+	t.Lock()
+	defer t.Unlock()
+
 	c, ok := t.out[peer]
 	if !ok {
 		return errors.New("peer unknown")

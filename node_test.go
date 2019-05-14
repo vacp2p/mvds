@@ -21,7 +21,7 @@ func TestOnRequest(t *testing.T) {
 	p := randomPeerId()
 	n.onRequest(g, p, r)
 
-	if n.state(g, m, p).RequestFlag != true {
+	if n.s.Get(g, m, p).RequestFlag != true {
 		t.Errorf("did not set Request flag to true")
 	}
 }
@@ -38,7 +38,7 @@ func TestOnAck(t *testing.T) {
 	p := randomPeerId()
 	n.onAck(g, p, a)
 
-	if n.state(g, m, p).HoldFlag != true {
+	if n.s.Get(g, m, p).HoldFlag != true {
 		t.Errorf("did not set Hold flag to true")
 	}
 }
@@ -55,7 +55,7 @@ func TestOnOffer(t *testing.T) {
 	p := randomPeerId()
 	n.onOffer(g, p, o)
 
-	if n.state(g, m, p).HoldFlag != true {
+	if n.s.Get(g, m, p).HoldFlag != true {
 		t.Errorf("did not set Hold flag to true")
 	}
 
@@ -97,7 +97,7 @@ func TestOnMessage(t *testing.T) {
 
 func getNodeForMessageHandlerTest() Node {
 	n := Node{}
-	n.syncState = make(map[GroupID]map[MessageID]map[PeerId]*State)
+	n.s = syncState{state: make(map[GroupID]map[MessageID]map[PeerId]*State)}
 	n.offeredMessages = make(map[GroupID]map[PeerId][]MessageID)
 	n.ID = randomPeerId()
 	return n
