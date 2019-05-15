@@ -97,7 +97,7 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 
 	for g, peers := range n.peers {
 		for _, p := range peers {
-			if !n.isPeerInGroup(group, p) {
+			if !n.IsPeerInGroup(group, p) {
 				continue
 			}
 
@@ -243,7 +243,7 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 					s.AckFlag = false
 				}
 
-				if n.isPeerInGroup(group, peer) && s.SendTime <= n.time {
+				if n.IsPeerInGroup(group, peer) && s.SendTime <= n.time {
 					// Offer Messages
 					if !s.HoldFlag {
 						pls[group][peer].Offer.Id = append(pls[group][peer].Offer.Id, id[:])
@@ -309,7 +309,7 @@ func (n *Node) updateSendTime(g GroupID, m MessageID, p PeerId) {
 	s.SendTime = n.sc(s.SendCount, n.time)
 }
 
-func (n Node) isPeerInGroup(g GroupID, p PeerId) bool {
+func (n Node) IsPeerInGroup(g GroupID, p PeerId) bool {
 	for _, peer := range n.sharing[g] {
 		if peer == p {
 			return true
