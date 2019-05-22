@@ -6,6 +6,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -157,21 +158,21 @@ func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) {
 		id := toMessageID(raw)
 		n.offerMessage(group, sender, id)
 		n.state(group, id, sender).HoldFlag = true
-		fmt.Printf("[%s] OFFER (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
+		log.Printf("[%s] OFFER (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 	}
 }
 
 func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) {
 	for _, id := range msg.Id {
 		n.state(group, toMessageID(id), sender).RequestFlag = true
-		fmt.Printf("[%s] REQUEST (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
+		log.Printf("[%s] REQUEST (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 	}
 }
 
 func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	for _, id := range msg.Id {
 		n.state(group, toMessageID(id), sender).HoldFlag = true
-		fmt.Printf("[%s] ACK (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
+		log.Printf("[%s] ACK (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 	}
 }
 
@@ -186,7 +187,7 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) {
 		// @todo process, should this function ever even have an error?
 	}
 
-	fmt.Printf("[%s] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
+	log.Printf("[%s] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 
 	// @todo push message somewhere for end user
 }
