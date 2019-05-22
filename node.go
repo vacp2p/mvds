@@ -20,7 +20,7 @@ type State struct {
 	AckFlag     bool
 	RequestFlag bool
 	SendCount   uint64
-	SendTime    int64
+	SendEpoch   int64
 }
 
 type Node struct {
@@ -101,7 +101,7 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 				continue
 			}
 
-			n.state(g, id, p).SendTime = n.epoch + 1
+			n.state(g, id, p).SendEpoch = n.epoch + 1
 		}
 	}
 
@@ -217,10 +217,10 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 				}
 
 				// Request offered Messages
-				if !n.ms.HasMessage(id) && n.state(group, id, peer).SendTime <= n.epoch {
+				if !n.ms.HasMessage(id) && n.state(group, id, peer).SendEpoch <= n.epoch {
 					pls[group][peer].Request.Id = append(pls[group][peer].Request.Id, id[:])
 					n.syncState[group][id][peer].HoldFlag = true
-					n.updateSendTime(group, id, peer)
+					n.updateSendEpoch(group, id, peer)
 				}
 			}
 		}
@@ -243,11 +243,11 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 					s.AckFlag = false
 				}
 
-				if n.IsPeerInGroup(group, peer) && s.SendTime <= n.epoch {
+				if n.IsPeerInGroup(group, peer) && s.SendEpoch <= n.epoch {
 					// Offer Messages
 					if !s.HoldFlag {
 						pls[group][peer].Offer.Id = append(pls[group][peer].Offer.Id, id[:])
-						n.updateSendTime(group, id, peer)
+						n.updateSendEpoch(group, id, peer)
 
 						// @todo do we wanna send messages like in interactive mode?
 					}
@@ -260,7 +260,7 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 						}
 
 						pls[group][peer].Messages = append(pls[group][peer].Messages, &m)
-						n.updateSendTime(group, id, peer)
+						n.updateSendEpoch(group, id, peer)
 						s.RequestFlag = false
 					}
 				}
@@ -303,10 +303,10 @@ func (n *Node) offerMessage(group GroupID, sender PeerId, id MessageID) {
 	n.offeredMessages[group][sender] = append(n.offeredMessages[group][sender], id)
 }
 
-func (n *Node) updateSendTime(g GroupID, m MessageID, p PeerId) {
+func (n *Node) updateSendEpoch(g GroupID, m MessageID, p PeerId) {
 	s := n.state(g, m, p)
 	s.SendCount += 1
-	s.SendTime = n.nextEpoch(s.SendCount, n.epoch)
+	s.SendEpoch = n.nextEpoch(s.SendCount, n.epoch)
 }
 
 func (n Node) IsPeerInGroup(g GroupID, p PeerId) bool {
