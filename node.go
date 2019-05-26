@@ -62,7 +62,6 @@ func (n *Node) Run() {
 
 	// @todo maybe some waiting?
 
-	w := n.st.Watch()
 
 	for {
 		<-time.After(1 * time.Second)
@@ -70,12 +69,12 @@ func (n *Node) Run() {
 		// @todo should probably do a select statement
 		// @todo this is done very badly
 		go func() {
-			select {
-			case p := <-w:
-				n.onPayload(p.Group, p.Sender, p.Payload)
-			default:
+			p := n.st.Watch()
+			if p == nil {
 				return
 			}
+
+			n.onPayload(p.Group, p.Sender, p.Payload)
 		}()
 
 		go n.sendMessages() // @todo probably not that efficient here
