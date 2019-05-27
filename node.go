@@ -134,6 +134,8 @@ func (n *Node) sendMessages() {
 			//	@todo
 		}
 	})
+
+	n.payloads.RemoveAll()
 }
 
 func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
