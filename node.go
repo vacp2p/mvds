@@ -33,7 +33,7 @@ type Node struct {
 	sharing         map[GroupID][]PeerId
 	peers           map[GroupID][]PeerId
 
-	payloads map[GroupID]map[PeerId]*Payload
+	payloads Payloads
 
 	nextEpoch calculateNextEpoch
 
@@ -132,17 +132,14 @@ func (n *Node) Share(group GroupID, id PeerId) {
 
 func (n *Node) sendMessages() {
 
-	pls := n.payloads()
+	// @todo iterate sync state to add offers
 
-	for g, payloads := range pls {
-		for id, p := range payloads {
-
-			err := n.st.Send(g, n.ID, id, *p)
-			if err != nil {
-				//	@todo
-			}
+	n.payloads.Map(func(id GroupID, peer PeerId, payload Payload) {
+		err := n.st.Send(id, n.ID, peer, payload)
+		if err != nil {
+			//	@todo
 		}
-	}
+	})
 }
 
 func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
@@ -151,16 +148,19 @@ func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
 	r := n.onOffer(group, sender, *payload.Offer)
 	a := n.onMessages(group, sender, payload.Messages)
 
-	n.payloads[group][sender] = &Payload{
-		Ack: &a,
-		Offer: &Offer{Id: make([][]byte, 0)},
-		Request: &r,
-		Messages: m,
-	}
+	// @todo add ack ids and request ids to payload stored in payloads
+
+	// @todo
+	//n.payloads[group][sender] = &Payload{
+	//	Ack: &a,
+	//	Offer: &Offer{Id: make([][]byte, 0)},
+	//	Request: &r,
+	//	Messages: m,
+	//}
 }
 
-func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) Request {
-	r := Request{Id: make([][]byte, 0)}
+func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) [][]byte {
+	r := make([][]byte, 0)
 
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
@@ -171,7 +171,7 @@ func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) Request {
 			continue
 		}
 
-		r.Id = append(r.Id, raw)
+		r = append(r, raw)
 		log.Printf("[%x] sending REQUEST (%x -> %x): %x\n", group[:4], n.ID.toBytes()[:4], sender.toBytes()[:4], id[:4])
 	}
 
@@ -216,8 +216,8 @@ func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	}
 }
 
-func (n *Node) onMessages(group GroupID, sender PeerId, messages []*Message) Ack {
-	a := Ack{Id: make([][]byte, 0)}
+func (n *Node) onMessages(group GroupID, sender PeerId, messages []*Message) [][]byte {
+	a := make([][]byte, 0)
 
 	for _, m := range messages {
 		err := n.onMessage(group, sender, *m)
@@ -228,7 +228,7 @@ func (n *Node) onMessages(group GroupID, sender PeerId, messages []*Message) Ack
 
 		id := m.ID()
 		log.Printf("[%x] sending ACK (%x -> %x): %x\n", group[:4], n.ID.toBytes()[:4], sender.toBytes()[:4], id[:4])
-		a.Id = append(a.Id, id[:])
+		a = append(a, id[:])
 	}
 
 	return a
