@@ -159,6 +159,7 @@ func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
 	}
 }
 
+// @todo this should return Requests
 func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
@@ -172,6 +173,7 @@ func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) {
 	}
 }
 
+// @todo this should return Messages
 func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
@@ -184,6 +186,7 @@ func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) {
 	}
 }
 
+// @todo this should return nothing?
 func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
@@ -196,6 +199,7 @@ func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	}
 }
 
+// @todo this should return ACKs
 func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) {
 	id := msg.ID()
 
@@ -214,6 +218,7 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) {
 	// @todo push message somewhere for end user
 }
 
+// @todo this turd should begone
 func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 	n.Lock()
 	defer n.Unlock()
