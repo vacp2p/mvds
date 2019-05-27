@@ -84,9 +84,6 @@ func (n *Node) Run() {
 
 // AppendMessage sends a message to a given group.
 func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
-	n.Lock()
-	defer n.Unlock()
-
 	m := Message{
 		GroupId:   group[:],
 		Timestamp: time.Now().Unix(),
@@ -306,9 +303,6 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 }
 
 func (n *Node) offerMessage(group GroupID, sender PeerId, id MessageID) {
-	n.Lock()
-	defer n.Unlock()
-
 	if _, ok := n.offeredMessages[group]; !ok {
 		n.offeredMessages[group] = make(map[PeerId][]MessageID)
 	}
