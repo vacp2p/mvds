@@ -19,9 +19,13 @@ type Transport struct {
 	out map[mvds.PeerId]chan<- mvds.Packet
 }
 
-func (t *Transport) Watch() mvds.Packet {
-	p := <-t.in
-	return p
+func (t *Transport) Watch() *mvds.Packet {
+	select {
+		case p := <- t.in:
+			return &p
+	default:
+		return nil
+	}
 }
 
 func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
@@ -105,8 +109,8 @@ func chat(group mvds.GroupID, nodes ...*mvds.Node) {
 	}
 }
 
-func Calc(count uint64, time int64) int64 {
-	return time + int64(count*2)
+func Calc(count uint64, epoch int64) int64 {
+	return epoch + int64(count*2)
 }
 
 func peerId() mvds.PeerId {

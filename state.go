@@ -7,11 +7,11 @@ type state struct {
 	AckFlag     bool
 	RequestFlag bool
 	SendCount   uint64
-	SendTime    int64
+	SendEpoch   int64
 }
 
 type syncState struct {
-	sync.Mutex
+	sync.RWMutex
 
 	state map[GroupID]map[MessageID]map[PeerId]state
 }

@@ -5,14 +5,14 @@ package mvds
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"fmt"
+	"log"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-type calculateSendTime func(count uint64, time int64) int64
+type calculateNextEpoch func(count uint64, epoch int64) int64
 type PeerId ecdsa.PublicKey
 
 type State struct {
@@ -20,7 +20,7 @@ type State struct {
 	AckFlag     bool
 	RequestFlag bool
 	SendCount   uint64
-	SendTime    int64
+	SendEpoch   int64
 }
 
 type Node struct {
@@ -34,14 +34,14 @@ type Node struct {
 	sharing         map[GroupID][]PeerId
 	peers           map[GroupID][]PeerId
 
-	sc calculateSendTime
+	nextEpoch calculateNextEpoch
 
 	ID PeerId
 
-	time int64
+	epoch int64
 }
 
-func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId) *Node {
+func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerId) *Node {
 	return &Node{
 		ms:              ms,
 		st:              st,
@@ -49,9 +49,9 @@ func NewNode(ms MessageStore, st Transport, sc calculateSendTime, id PeerId) *No
 		offeredMessages: make(map[GroupID]map[PeerId][]MessageID),
 		sharing:         make(map[GroupID][]PeerId),
 		peers:           make(map[GroupID][]PeerId),
-		sc:              sc,
+		nextEpoch:       nextEpoch,
 		ID:              id,
-		time:            0,
+		epoch:           0,
 	}
 }
 
@@ -62,6 +62,7 @@ func (n *Node) Run() {
 
 	// @todo maybe some waiting?
 
+
 	for {
 		<-time.After(1 * time.Second)
 
@@ -69,11 +70,15 @@ func (n *Node) Run() {
 		// @todo this is done very badly
 		go func() {
 			p := n.st.Watch()
+			if p == nil {
+				return
+			}
+
 			n.onPayload(p.Group, p.Sender, p.Payload)
 		}()
 
 		go n.sendMessages() // @todo probably not that efficient here
-		n.time += 1
+		n.epoch += 1
 	}
 }
 
@@ -97,12 +102,12 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 
 	for g, peers := range n.peers {
 		for _, p := range peers {
-			if !n.isPeerInGroup(group, p) {
+			if !n.IsPeerInGroup(group, p) {
 				continue
 			}
 
 			s := n.s.Get(g, id, p)
-			s.SendTime = n.time + 1
+			s.SendEpoch = n.epoch + 1
 			n.s.Set(g, id, p, s)
 		}
 	}
@@ -163,7 +168,7 @@ func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) {
 		s.HoldFlag = true
 		n.s.Set(group, id, sender, s)
 
-		fmt.Printf("[%s] OFFER (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
+		log.Printf("[%x] OFFER (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 	}
 }
 
@@ -175,7 +180,7 @@ func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) {
 		s.RequestFlag = true
 		n.s.Set(group, id, sender, s)
 
-		fmt.Printf("[%s] REQUEST (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
+		log.Printf("[%x] REQUEST (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 	}
 }
 
@@ -187,7 +192,7 @@ func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 		s.HoldFlag = true
 		n.s.Set(group, id, sender, s)
 
-		fmt.Printf("[%s] ACK (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
+		log.Printf("[%x] ACK (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 	}
 }
 
@@ -204,7 +209,7 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) {
 		// @todo process, should this function ever even have an error?
 	}
 
-	fmt.Printf("[%s] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
+	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 
 	// @todo push message somewhere for end user
 }
@@ -216,7 +221,8 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 	pls := make(map[GroupID]map[PeerId]*Payload)
 
 	// Ack offered Messages
-	for group, offers := range n.offeredMessages {
+	o := n.offeredMessages
+	for group, offers := range o {
 		for peer, messages := range offers {
 			// @todo do we need this?
 			if _, ok := pls[group]; !ok {
@@ -239,14 +245,14 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 				}
 
 				// Request offered Messages
-				if !n.ms.HasMessage(id) && n.s.Get(group, id, peer).SendTime <= n.time {
+				if !n.ms.HasMessage(id) && n.s.Get(group, id, peer).SendEpoch <= n.epoch {
 					pls[group][peer].Request.Id = append(pls[group][peer].Request.Id, id[:])
 
 					s := n.s.Get(group, id, peer)
 					s.HoldFlag = true
 					n.s.Set(group, id, peer, s)
 
-					n.updateSendTime(group, id, peer)
+					n.updateSendEpoch(group, id, peer)
 				}
 			}
 		}
@@ -270,11 +276,11 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 					n.s.Set(group, id, peer, s)
 				}
 
-				if n.isPeerInGroup(group, peer) && s.SendTime <= n.time {
+				if n.IsPeerInGroup(group, peer) && s.SendEpoch <= n.epoch {
 					// Offer Messages
 					if !s.HoldFlag {
 						pls[group][peer].Offer.Id = append(pls[group][peer].Offer.Id, id[:])
-						n.updateSendTime(group, id, peer)
+						n.updateSendEpoch(group, id, peer)
 
 						// @todo do we wanna send messages like in interactive mode?
 					}
@@ -287,7 +293,7 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 						}
 
 						pls[group][peer].Messages = append(pls[group][peer].Messages, &m)
-						n.updateSendTime(group, id, peer)
+						n.updateSendEpoch(group, id, peer)
 						s.RequestFlag = false
 						n.s.Set(group, id, peer, s)
 					}
@@ -300,6 +306,9 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 }
 
 func (n *Node) offerMessage(group GroupID, sender PeerId, id MessageID) {
+	n.Lock()
+	defer n.Unlock()
+
 	if _, ok := n.offeredMessages[group]; !ok {
 		n.offeredMessages[group] = make(map[PeerId][]MessageID)
 	}
@@ -311,14 +320,14 @@ func (n *Node) offerMessage(group GroupID, sender PeerId, id MessageID) {
 	n.offeredMessages[group][sender] = append(n.offeredMessages[group][sender], id)
 }
 
-func (n *Node) updateSendTime(g GroupID, m MessageID, p PeerId) {
+func (n *Node) updateSendEpoch(g GroupID, m MessageID, p PeerId) {
 	s := n.s.Get(g, m, p)
 	s.SendCount += 1
-	s.SendTime += n.sc(s.SendCount, n.time)
+	s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
 	n.s.Set(g, m, p, s)
 }
 
-func (n Node) isPeerInGroup(g GroupID, p PeerId) bool {
+func (n Node) IsPeerInGroup(g GroupID, p PeerId) bool {
 	for _, peer := range n.sharing[g] {
 		if peer == p {
 			return true
