@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/status-im/mvds/payloads"
 )
 
 type calculateNextEpoch func(count uint64, epoch int64) int64
@@ -34,7 +33,7 @@ type Node struct {
 	sharing         map[GroupID][]PeerId
 	peers           map[GroupID][]PeerId
 
-	payloads payloads.Payloads
+	payloads Payloads
 
 	nextEpoch calculateNextEpoch
 
@@ -50,6 +49,7 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 		s:               syncState{state: make(map[GroupID]map[MessageID]map[PeerId]state)},
 		sharing:         make(map[GroupID][]PeerId),
 		peers:           make(map[GroupID][]PeerId),
+		payloads: Payloads{payloads: make(map[GroupID]map[PeerId]Payload)},
 		nextEpoch:       nextEpoch,
 		ID:              id,
 		epoch:           0,
@@ -58,10 +58,6 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 
 // Run listens for new messages received by the node and sends out those required every tick.
 func (n *Node) Run() {
-
-	// @todo start listening to both the send channel and what the transport receives for later handling
-
-	// @todo maybe some waiting?
 
 	// this will be completely legitimate with new payload handling
 	go func() {
@@ -103,6 +99,8 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 				continue
 			}
 
+			// @todo store a sync state only for Offers
+
 			s := n.s.Get(g, id, p)
 			s.SendEpoch = n.epoch + 1
 			n.s.Set(g, id, p, s)
@@ -132,8 +130,14 @@ func (n *Node) Share(group GroupID, id PeerId) {
 }
 
 func (n *Node) sendMessages() {
+	n.s.Map(func(g GroupID, m MessageID, p PeerId, s state) state {
+		if s.SendEpoch < n.epoch {
+			return s
+		}
 
-	// @todo iterate sync state to add offers
+		n.payloads.AddOffers(g, p, m[:])
+		return n.updateSendEpoch(s)
+	})
 
 	n.payloads.Map(func(id GroupID, peer PeerId, payload Payload) {
 		err := n.st.Send(id, n.ID, peer, payload)
@@ -144,10 +148,21 @@ func (n *Node) sendMessages() {
 }
 
 func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
-	n.onAck(group, sender, *payload.Ack)
-	n.payloads.AddMessages(group, sender, n.onRequest(group, sender, *payload.Request))
-	n.payloads.AddRequests(group, sender, n.onOffer(group, sender, *payload.Offer))
-	n.payloads.AddAcks(group, sender, n.onMessages(group, sender, payload.Messages))
+	if payload.Ack != nil {
+		n.onAck(group, sender, *payload.Ack)
+	}
+
+	if payload.Request != nil {
+		n.payloads.AddMessages(group, sender, n.onRequest(group, sender, *payload.Request)...)
+	}
+
+	if payload.Offer != nil {
+		n.payloads.AddRequests(group, sender, n.onOffer(group, sender, *payload.Offer)...)
+	}
+
+	if payload.Messages != nil {
+		n.payloads.AddAcks(group, sender, n.onMessages(group, sender, payload.Messages)...)
+	}
 }
 
 func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) [][]byte {
@@ -199,11 +214,7 @@ func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
 
-		// @todo delete from list of offers
-
-		s := n.s.Get(group, id, sender)
-		s.HoldFlag = true
-		n.s.Set(group, id, sender, s)
+		n.s.Remove(group, id, sender)
 
 		log.Printf("[%x] ACK (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 	}
@@ -232,10 +243,7 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 	id := msg.ID()
 	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 
-	s := n.s.Get(group, id, sender)
-	s.HoldFlag = true
-	s.AckFlag = true
-	n.s.Set(group, id, sender, s)
+	// @todo share message with those around us
 
 	err := n.ms.SaveMessage(msg)
 	if err != nil {
@@ -248,11 +256,10 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 	return nil
 }
 
-func (n *Node) updateSendEpoch(g GroupID, m MessageID, p PeerId) {
-	s := n.s.Get(g, m, p)
+func (n *Node) updateSendEpoch(s state) state {
 	s.SendCount += 1
 	s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
-	n.s.Set(g, m, p, s)
+	return s
 }
 
 func (n Node) IsPeerInGroup(g GroupID, p PeerId) bool {
