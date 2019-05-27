@@ -79,9 +79,9 @@ func main() {
 	nc.Share(group, na.ID)
 	nc.Share(group, nb.ID)
 
-	go na.Run()
-	go nb.Run()
-	go nc.Run()
+	na.Run()
+	nb.Run()
+	nc.Run()
 
 	chat(group, na, nb)
 }
@@ -93,7 +93,7 @@ func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
 
 func chat(group mvds.GroupID, nodes ...*mvds.Node) {
 	for {
-		<-time.After(5 * time.Second)
+		time.Sleep(5 * time.Second)
 
 		for _, n := range nodes {
 			_, err := n.AppendMessage(group, []byte("test"))

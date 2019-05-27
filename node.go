@@ -56,12 +56,14 @@ func (n *Node) Run() {
 		}
 	}()
 
-	for {
-		<-time.After(1 * time.Second)
+	go func() {
+		for {
+			time.Sleep(1 * time.Second)
 
-		n.sendMessages()
-		n.epoch += 1
-	}
+			n.sendMessages()
+			n.epoch += 1
+		}
+	}()
 }
 
 // AppendMessage sends a message to a given group.
