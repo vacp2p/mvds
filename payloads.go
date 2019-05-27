@@ -90,11 +90,13 @@ func (p *Payloads) Map(f func(GroupID, PeerId, Payload)) {
 			f(g, peer, payload)
 		}
 	}
+
+	p.payloads = make(map[GroupID]map[PeerId]Payload)
 }
 
 func (p *Payloads) RemoveAll() {
-	p.Lock()
-	defer p.Unlock()
+	//p.Lock()
+	//defer p.Unlock()
 
-	p.payloads = make(map[GroupID]map[PeerId]Payload)
+	//p.payloads = make(map[GroupID]map[PeerId]Payload)
 }

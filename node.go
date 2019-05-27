@@ -18,9 +18,9 @@ type Node struct {
 	ms MessageStore
 	st Transport
 
-	s               syncState
-	sharing         map[GroupID][]PeerId
-	peers           map[GroupID][]PeerId
+	s       syncState
+	sharing map[GroupID][]PeerId
+	peers   map[GroupID][]PeerId
 
 	payloads Payloads
 
@@ -33,15 +33,15 @@ type Node struct {
 
 func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerId) *Node {
 	return &Node{
-		ms:              ms,
-		st:              st,
-		s:               syncState{state: make(map[GroupID]map[MessageID]map[PeerId]state)},
-		sharing:         make(map[GroupID][]PeerId),
-		peers:           make(map[GroupID][]PeerId),
-		payloads: Payloads{payloads: make(map[GroupID]map[PeerId]Payload)},
-		nextEpoch:       nextEpoch,
-		ID:              id,
-		epoch:           0,
+		ms:        ms,
+		st:        st,
+		s:         syncState{state: make(map[GroupID]map[MessageID]map[PeerId]state)},
+		sharing:   make(map[GroupID][]PeerId),
+		peers:     make(map[GroupID][]PeerId),
+		payloads:  Payloads{payloads: make(map[GroupID]map[PeerId]Payload)},
+		nextEpoch: nextEpoch,
+		ID:        id,
+		epoch:     0,
 	}
 }
 
@@ -59,7 +59,7 @@ func (n *Node) Run() {
 	for {
 		<-time.After(1 * time.Second)
 
-		n.sendMessages() // @todo probably not that efficient here
+		n.sendMessages()
 		n.epoch += 1
 	}
 }
@@ -241,7 +241,6 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 		return err
 		// @todo process, should this function ever even have an error?
 	}
-
 
 	// @todo push message somewhere for end user
 	return nil
