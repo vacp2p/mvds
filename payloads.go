@@ -1,7 +1,6 @@
 package mvds
 
 import (
-	"reflect"
 	"sync"
 )
 
@@ -36,13 +35,7 @@ func (p *Payloads) AddOffers(group GroupID, peer PeerId, offers ...[]byte) {
 		payload.Offer = &Offer{Id: make([][]byte, 0)}
 	}
 
-	for _, o := range offers {
-		if isInArray(payload.Offer.Id, o) {
-			continue
-		}
-
-		payload.Offer.Id = append(payload.Offer.Id, o)
-	}
+	payload.Offer.Id = append(payload.Offer.Id, offers...)
 
 	p.set(group, peer, payload)
 }
@@ -56,13 +49,7 @@ func (p *Payloads) AddAcks(group GroupID, peer PeerId, acks ...[]byte) {
 		payload.Ack = &Ack{Id: make([][]byte, 0)}
 	}
 
-	for _, a := range acks {
-		if isInArray(payload.Ack.Id, a) {
-			continue
-		}
-
-		payload.Ack.Id = append(payload.Ack.Id, a)
-	}
+	payload.Ack.Id = append(payload.Ack.Id, acks...)
 
 	p.set(group, peer, payload)
 }
@@ -76,13 +63,7 @@ func (p *Payloads) AddRequests(group GroupID, peer PeerId, request ...[]byte) {
 		payload.Request = &Request{Id: make([][]byte, 0)}
 	}
 
-	for _, r := range request {
-		if isInArray(payload.Request.Id, r) {
-			continue
-		}
-
-		payload.Request.Id = append(payload.Request.Id, r)
-	}
+	payload.Request.Id = append(payload.Request.Id, request...)
 
 	p.set(group, peer, payload)
 }
@@ -116,14 +97,4 @@ func (p *Payloads) RemoveAll() {
 	defer p.Unlock()
 
 	p.payloads = make(map[GroupID]map[PeerId]Payload)
-}
-
-func isInArray(a [][]byte, val []byte) bool {
-	for _, v := range a {
-		if reflect.DeepEqual(v, val) {
-			return true
-		}
-	}
-
-	return false
 }
