@@ -16,9 +16,13 @@ type Transport struct {
 	out map[mvds.PeerId]chan<- mvds.Packet
 }
 
-func (t *Transport) Watch() mvds.Packet {
-	p := <-t.in
-	return p
+func (t *Transport) Watch() *mvds.Packet {
+	select {
+		case p := <- t.in:
+			return &p
+	default:
+		return nil
+	}
 }
 
 func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {

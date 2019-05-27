@@ -62,6 +62,7 @@ func (n *Node) Run() {
 
 	// @todo maybe some waiting?
 
+
 	for {
 		<-time.After(1 * time.Second)
 
@@ -69,6 +70,10 @@ func (n *Node) Run() {
 		// @todo this is done very badly
 		go func() {
 			p := n.st.Watch()
+			if p == nil {
+				return
+			}
+
 			n.onPayload(p.Group, p.Sender, p.Payload)
 		}()
 
