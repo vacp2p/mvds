@@ -6,6 +6,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"log"
+	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -61,7 +62,7 @@ func (n *Node) Run() {
 			time.Sleep(1 * time.Second)
 
 			n.sendMessages()
-			n.epoch += 1
+			atomic.AddInt64(&n.epoch, 1)
 		}
 	}()
 }
