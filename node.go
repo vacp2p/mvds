@@ -6,7 +6,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -15,17 +14,7 @@ import (
 type calculateNextEpoch func(count uint64, epoch int64) int64
 type PeerId ecdsa.PublicKey
 
-type State struct {
-	HoldFlag    bool
-	AckFlag     bool
-	RequestFlag bool
-	SendCount   uint64
-	SendEpoch   int64
-}
-
 type Node struct {
-	sync.Mutex
-
 	ms MessageStore
 	st Transport
 
@@ -131,7 +120,7 @@ func (n *Node) Share(group GroupID, id PeerId) {
 
 func (n *Node) sendMessages() {
 	n.s.Map(func(g GroupID, m MessageID, p PeerId, s state) state {
-		if s.SendEpoch < n.epoch {
+		if s.SendEpoch < n.epoch || !n.IsPeerInGroup(g, p) {
 			return s
 		}
 
@@ -190,6 +179,10 @@ func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
 		log.Printf("[%x] REQUEST (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
+
+		if !n.IsPeerInGroup(group, sender) {
+			continue
+		}
 
 		message, err := n.ms.GetMessage(id)
 		if err != nil {
