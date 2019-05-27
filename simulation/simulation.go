@@ -43,9 +43,9 @@ func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerI
 
 func main() {
 
-	ain := make(chan mvds.Packet)
-	bin := make(chan mvds.Packet)
-	cin := make(chan mvds.Packet)
+	ain := make(chan mvds.Packet, 10)
+	bin := make(chan mvds.Packet, 10)
+	cin := make(chan mvds.Packet, 10)
 
 	at := &Transport{in: ain, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
 	bt := &Transport{in: bin, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
