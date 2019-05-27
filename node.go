@@ -30,9 +30,10 @@ type Node struct {
 	st Transport
 
 	s               syncState
-	offeredMessages map[GroupID]map[PeerId][]MessageID
 	sharing         map[GroupID][]PeerId
 	peers           map[GroupID][]PeerId
+
+	payloads map[GroupID]map[PeerId]*Payload
 
 	nextEpoch calculateNextEpoch
 
@@ -46,7 +47,6 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 		ms:              ms,
 		st:              st,
 		s:               syncState{state: make(map[GroupID]map[MessageID]map[PeerId]state)},
-		offeredMessages: make(map[GroupID]map[PeerId][]MessageID),
 		sharing:         make(map[GroupID][]PeerId),
 		peers:           make(map[GroupID][]PeerId),
 		nextEpoch:       nextEpoch,
@@ -62,20 +62,16 @@ func (n *Node) Run() {
 
 	// @todo maybe some waiting?
 
+	// this will be completely legitimate with new payload handling
+	go func() {
+		for {
+			p := n.st.Watch()
+			n.onPayload(p.Group, p.Sender, p.Payload)
+		}
+	}()
 
 	for {
 		<-time.After(1 * time.Second)
-
-		// @todo should probably do a select statement
-		// @todo this is done very badly
-		go func() {
-			p := n.st.Watch()
-			if p == nil {
-				return
-			}
-
-			n.onPayload(p.Group, p.Sender, p.Payload)
-		}()
 
 		go n.sendMessages() // @todo probably not that efficient here
 		n.epoch += 1
@@ -155,15 +151,14 @@ func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
 	r := n.onOffer(group, sender, *payload.Offer)
 	a := n.onMessages(group, sender, payload.Messages)
 
-	Payload{
+	n.payloads[group][sender] = &Payload{
 		Ack: &a,
 		Offer: &Offer{Id: make([][]byte, 0)},
 		Request: &r,
-		Messages: &m,
+		Messages: m,
 	}
 }
 
-// @todo this should return Requests
 func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) Request {
 	r := Request{Id: make([][]byte, 0)}
 
@@ -183,7 +178,6 @@ func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) Request {
 	return r
 }
 
-// @todo this should return Messages
 func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
 	m := make([]*Message, 0)
 
@@ -196,6 +190,8 @@ func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
 			log.Printf("error requesting message %x", id[:4])
 			continue
 		}
+
+		// @todo should ensure we are sharing, we don't wanna just send anyone anything
 
 		// @todo send count and send epoch
 		// s.SendCount += 1
@@ -257,71 +253,6 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 
 	// @todo push message somewhere for end user
 	return nil
-}
-
-// @todo this turd should begone
-func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
-	n.Lock()
-	defer n.Unlock()
-
-	pls := make(map[GroupID]map[PeerId]*Payload)
-
-	// Ack offered Messages
-	o := n.offeredMessages
-	for group, offers := range o {
-		for peer, messages := range offers {
-			// @todo do we need this?
-			if _, ok := pls[group]; !ok {
-				pls[group] = make(map[PeerId]*Payload)
-			}
-
-			if _, ok := pls[group][peer]; !ok {
-				pls[group][peer] = createPayload()
-			}
-
-			for _, id := range messages {
-				// Ack offered Messages
-				if n.ms.HasMessage(id) && n.s.Get(group, id, peer).AckFlag {
-
-					s := n.s.Get(group, id, peer)
-					s.AckFlag = true
-					n.s.Set(group, id, peer, s)
-
-					pls[group][peer].Ack.Id = append(pls[group][peer].Ack.Id, id[:])
-				}
-			}
-		}
-	}
-
-	n.s.Map(func(group GroupID, id MessageID, peer PeerId, s state) state {
-		if _, ok := pls[group]; !ok {
-			pls[group] = make(map[PeerId]*Payload)
-		}
-
-		if _, ok := pls[group][peer]; !ok {
-			pls[group][peer] = createPayload()
-		}
-
-		// Ack sent Messages
-		if s.AckFlag {
-			pls[group][peer].Ack.Id = append(pls[group][peer].Ack.Id, id[:])
-			s.AckFlag = false
-		}
-
-		if n.IsPeerInGroup(group, peer) {
-			// Offer Messages
-			if !s.HoldFlag && s.SendEpoch <= n.epoch {
-				pls[group][peer].Offer.Id = append(pls[group][peer].Offer.Id, id[:])
-				s.SendCount += 1
-				s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
-				// @todo do we wanna send messages like in interactive mode?
-			}
-		}
-
-		return s
-	})
-
-	return pls
 }
 
 func (n *Node) updateSendEpoch(g GroupID, m MessageID, p PeerId) {
