@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/status-im/mvds/payloads"
 )
 
 type calculateNextEpoch func(count uint64, epoch int64) int64
@@ -33,7 +34,7 @@ type Node struct {
 	sharing         map[GroupID][]PeerId
 	peers           map[GroupID][]PeerId
 
-	payloads Payloads
+	payloads payloads.Payloads
 
 	nextEpoch calculateNextEpoch
 
@@ -144,19 +145,9 @@ func (n *Node) sendMessages() {
 
 func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
 	n.onAck(group, sender, *payload.Ack)
-	m := n.onRequest(group, sender, *payload.Request)
-	r := n.onOffer(group, sender, *payload.Offer)
-	a := n.onMessages(group, sender, payload.Messages)
-
-	// @todo add ack ids and request ids to payload stored in payloads
-
-	// @todo
-	//n.payloads[group][sender] = &Payload{
-	//	Ack: &a,
-	//	Offer: &Offer{Id: make([][]byte, 0)},
-	//	Request: &r,
-	//	Messages: m,
-	//}
+	n.payloads.AddMessages(group, sender, n.onRequest(group, sender, *payload.Request))
+	n.payloads.AddRequests(group, sender, n.onOffer(group, sender, *payload.Offer))
+	n.payloads.AddAcks(group, sender, n.onMessages(group, sender, payload.Messages))
 }
 
 func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) [][]byte {
@@ -207,6 +198,8 @@ func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
 func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
+
+		// @todo delete from list of offers
 
 		s := n.s.Get(group, id, sender)
 		s.HoldFlag = true
