@@ -203,7 +203,8 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 	pls := make(map[GroupID]map[PeerId]*Payload)
 
 	// Ack offered Messages
-	for group, offers := range n.offeredMessages {
+	o := n.offeredMessages
+	for group, offers := range o {
 		for peer, messages := range offers {
 			// @todo do we need this?
 			if _, ok := pls[group]; !ok {
@@ -297,6 +298,9 @@ func (n *Node) state(group GroupID, id MessageID, sender PeerId) *State {
 }
 
 func (n *Node) offerMessage(group GroupID, sender PeerId, id MessageID) {
+	n.Lock()
+	defer n.Unlock()
+
 	if _, ok := n.offeredMessages[group]; !ok {
 		n.offeredMessages[group] = make(map[PeerId][]MessageID)
 	}
