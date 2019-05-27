@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/status-im/mvds"
 )
@@ -92,6 +93,8 @@ func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
 
 func chat(group mvds.GroupID, nodes ...*mvds.Node) {
 	for {
+		<-time.After(5 * time.Second)
+
 		for _, n := range nodes {
 			_, err := n.AppendMessage(group, []byte("test"))
 			if err != nil {

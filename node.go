@@ -190,11 +190,7 @@ func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
 			continue
 		}
 
-		// @todo should ensure we are sharing, we don't wanna just send anyone anything
-
-		// @todo send count and send epoch
-		// s.SendCount += 1
-		// s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
+		n.s.Set(group, id, sender, n.updateSendEpoch(n.s.Get(group, id, sender)))
 
 		m = append(m, &message)
 	}
