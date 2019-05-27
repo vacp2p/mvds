@@ -303,6 +303,9 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 }
 
 func (n *Node) offerMessage(group GroupID, sender PeerId, id MessageID) {
+	n.Lock()
+	defer n.Unlock()
+
 	if _, ok := n.offeredMessages[group]; !ok {
 		n.offeredMessages[group] = make(map[PeerId][]MessageID)
 	}
