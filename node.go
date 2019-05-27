@@ -289,6 +289,7 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 					if s.RequestFlag {
 						m, err := n.ms.GetMessage(id)
 						if err != nil {
+							log.Printf("error retreiving message: %s", err)
 							continue
 						}
 
