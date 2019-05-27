@@ -258,50 +258,47 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 		}
 	}
 
-	for group, syncstate := range n.s.Iterate() {
-		for id, peers := range syncstate {
-			for peer, s := range peers {
-				if _, ok := pls[group]; !ok {
-					pls[group] = make(map[PeerId]*Payload)
+	n.s.Map(func(group GroupID, id MessageID, peer PeerId, s state) state {
+		if _, ok := pls[group]; !ok {
+			pls[group] = make(map[PeerId]*Payload)
+		}
+
+		if _, ok := pls[group][peer]; !ok {
+			pls[group][peer] = createPayload()
+		}
+
+		// Ack sent Messages
+		if s.AckFlag {
+			pls[group][peer].Ack.Id = append(pls[group][peer].Ack.Id, id[:])
+			s.AckFlag = false
+		}
+
+		if n.IsPeerInGroup(group, peer) {
+			// Offer Messages
+			if !s.HoldFlag && s.SendEpoch <= n.epoch {
+				pls[group][peer].Offer.Id = append(pls[group][peer].Offer.Id, id[:])
+				s.SendCount += 1
+				s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
+				// @todo do we wanna send messages like in interactive mode?
+			}
+
+			// send requested Messages
+			if s.RequestFlag {
+				m, err := n.ms.GetMessage(id)
+				if err != nil {
+					log.Printf("error retreiving message: %s", err)
+					return s
 				}
 
-				if _, ok := pls[group][peer]; !ok {
-					pls[group][peer] = createPayload()
-				}
-
-				// Ack sent Messages
-				if s.AckFlag {
-					pls[group][peer].Ack.Id = append(pls[group][peer].Ack.Id, id[:])
-					s.AckFlag = false
-					n.s.Set(group, id, peer, s)
-				}
-
-				if n.IsPeerInGroup(group, peer) {
-					// Offer Messages
-					if !s.HoldFlag && s.SendEpoch <= n.epoch {
-						pls[group][peer].Offer.Id = append(pls[group][peer].Offer.Id, id[:])
-						n.updateSendEpoch(group, id, peer)
-
-						// @todo do we wanna send messages like in interactive mode?
-					}
-
-					// send requested Messages
-					if s.RequestFlag {
-						m, err := n.ms.GetMessage(id)
-						if err != nil {
-							log.Printf("error retreiving message: %s", err)
-							continue
-						}
-
-						pls[group][peer].Messages = append(pls[group][peer].Messages, &m)
-						n.updateSendEpoch(group, id, peer)
-						s.RequestFlag = false
-						n.s.Set(group, id, peer, s)
-					}
-				}
+				pls[group][peer].Messages = append(pls[group][peer].Messages, &m)
+				s.SendCount += 1
+				s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
+				s.RequestFlag = false
 			}
 		}
-	}
+
+		return s
+	})
 
 	return pls
 }
