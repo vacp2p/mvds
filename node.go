@@ -278,15 +278,6 @@ func toMessageID(b []byte) MessageID {
 	return id
 }
 
-func createPayload() *Payload {
-	return &Payload{
-		Ack:      &Ack{Id: make([][]byte, 0)},
-		Offer:    &Offer{Id: make([][]byte, 0)},
-		Request:  &Request{Id: make([][]byte, 0)},
-		Messages: make([]*Message, 0),
-	}
-}
-
 func (p PeerId) toBytes() []byte {
 	if p.X == nil || p.Y == nil {
 		return nil
