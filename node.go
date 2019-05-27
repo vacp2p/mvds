@@ -245,10 +245,10 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 				}
 
 				// Request offered Messages
-				if !n.ms.HasMessage(id) && n.s.Get(group, id, peer).SendEpoch <= n.epoch {
+				s := n.s.Get(group, id, peer)
+				if !n.ms.HasMessage(id) && s.SendEpoch <= n.epoch {
 					pls[group][peer].Request.Id = append(pls[group][peer].Request.Id, id[:])
 
-					s := n.s.Get(group, id, peer)
 					s.HoldFlag = true
 					n.s.Set(group, id, peer, s)
 
