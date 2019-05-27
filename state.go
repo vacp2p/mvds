@@ -45,3 +45,18 @@ func (s *syncState) Set(group GroupID, id MessageID, sender PeerId, state state)
 func (s syncState) Iterate() map[GroupID]map[MessageID]map[PeerId]state {
 	return s.state
 }
+
+func (s syncState) Map(callback func(g GroupID, m MessageID, p PeerId, s state) *state) {
+	for group, syncstate := range s.state {
+		for id, peers := range syncstate {
+			for peer, state := range peers {
+				newState := callback(group, id, peer, state)
+				if newState == nil {
+					continue
+				}
+
+				s.state[group][id][peer] = *newState
+			}
+		}
+	}
+}

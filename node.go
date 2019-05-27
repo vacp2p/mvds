@@ -258,6 +258,10 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 		}
 	}
 
+	n.s.Map(func(g GroupID, m MessageID, p PeerId, s state) *state {
+		return nil
+	})
+
 	for group, syncstate := range n.s.Iterate() {
 		for id, peers := range syncstate {
 			for peer, s := range peers {
