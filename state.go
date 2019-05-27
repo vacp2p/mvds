@@ -16,7 +16,27 @@ type syncState struct {
 	state map[GroupID]map[MessageID]map[PeerId]state
 }
 
+
 func (s syncState) Get(group GroupID, id MessageID, sender PeerId) state {
+	s.RLock()
+	defer s.RUnlock()
+
+	if _, ok := s.state[group]; !ok {
+		return state{}
+	}
+
+	if _, ok := s.state[group][id]; !ok {
+		return state{}
+	}
+
+	if _, ok := s.state[group][id][sender]; !ok {
+		return state{}
+	}
+
+	return s.state[group][id][sender]
+}
+
+func (s *syncState) Set(group GroupID, id MessageID, sender PeerId, newState state) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -28,18 +48,7 @@ func (s syncState) Get(group GroupID, id MessageID, sender PeerId) state {
 		s.state[group][id] = make(map[PeerId]state)
 	}
 
-	if _, ok := s.state[group][id][sender]; !ok {
-		s.state[group][id][sender] = state{}
-	}
-
-	return s.state[group][id][sender]
-}
-
-func (s *syncState) Set(group GroupID, id MessageID, sender PeerId, state state) {
-	s.Lock()
-	defer s.Unlock()
-
-	s.state[group][id][sender] = state
+	s.state[group][id][sender] = newState
 }
 
 func (s syncState) Iterate() map[GroupID]map[MessageID]map[PeerId]state {
