@@ -21,14 +21,6 @@ func (s syncState) Get(group GroupID, id MessageID, sender PeerId) state {
 	s.RLock()
 	defer s.RUnlock()
 
-	if _, ok := s.state[group]; !ok {
-		return state{}
-	}
-
-	if _, ok := s.state[group][id]; !ok {
-		return state{}
-	}
-
 	if _, ok := s.state[group][id][sender]; !ok {
 		return state{}
 	}
