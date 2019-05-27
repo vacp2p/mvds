@@ -151,39 +151,60 @@ func (n *Node) sendMessages() {
 
 func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
 	n.onAck(group, sender, *payload.Ack)
-	n.onRequest(group, sender, *payload.Request)
-	n.onOffer(group, sender, *payload.Offer)
+	m := n.onRequest(group, sender, *payload.Request)
+	r := n.onOffer(group, sender, *payload.Offer)
+	a := n.onMessages(group, sender, payload.Messages)
 
-	for _, m := range payload.Messages {
-		n.onMessage(group, sender, *m)
+	Payload{
+		Ack: &a,
+		Offer: &Offer{Id: make([][]byte, 0)},
+		Request: &r,
+		Messages: &m,
 	}
 }
 
 // @todo this should return Requests
-func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) {
+func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) Request {
+	r := Request{Id: make([][]byte, 0)}
+
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
-		n.offerMessage(group, sender, id)
-
-		s := n.s.Get(group, id, sender)
-		s.HoldFlag = true
-		n.s.Set(group, id, sender, s)
-
 		log.Printf("[%x] OFFER (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
+
+		// @todo maybe ack?
+		if n.ms.HasMessage(id) {
+			continue
+		}
+
+		r.Id = append(r.Id, raw)
+		log.Printf("[%x] sending REQUEST (%x -> %x): %x\n", group[:4], n.ID.toBytes()[:4], sender.toBytes()[:4], id[:4])
 	}
+
+	return r
 }
 
 // @todo this should return Messages
-func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) {
+func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
+	m := make([]*Message, 0)
+
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
-
-		s := n.s.Get(group, id, sender)
-		s.RequestFlag = true
-		n.s.Set(group, id, sender, s)
-
 		log.Printf("[%x] REQUEST (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
+
+		message, err := n.ms.GetMessage(id)
+		if err != nil {
+			log.Printf("error requesting message %x", id[:4])
+			continue
+		}
+
+		// @todo send count and send epoch
+		// s.SendCount += 1
+		// s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
+
+		m = append(m, &message)
 	}
+
+	return m
 }
 
 // @todo this should return nothing?
@@ -199,9 +220,28 @@ func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	}
 }
 
+func (n *Node) onMessages(group GroupID, sender PeerId, messages []*Message) Ack {
+	a := Ack{Id: make([][]byte, 0)}
+
+	for _, m := range messages {
+		err := n.onMessage(group, sender, *m)
+		if err != nil {
+			// @todo
+			continue
+		}
+
+		id := m.ID()
+		log.Printf("[%x] sending ACK (%x -> %x): %x\n", group[:4], n.ID.toBytes()[:4], sender.toBytes()[:4], id[:4])
+		a.Id = append(a.Id, id[:])
+	}
+
+	return a
+}
+
 // @todo this should return ACKs
-func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) {
+func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 	id := msg.ID()
+	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 
 	s := n.s.Get(group, id, sender)
 	s.HoldFlag = true
@@ -210,12 +250,13 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) {
 
 	err := n.ms.SaveMessage(msg)
 	if err != nil {
+		return err
 		// @todo process, should this function ever even have an error?
 	}
 
-	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 
 	// @todo push message somewhere for end user
+	return nil
 }
 
 // @todo this turd should begone
@@ -248,17 +289,6 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 
 					pls[group][peer].Ack.Id = append(pls[group][peer].Ack.Id, id[:])
 				}
-
-				// Request offered Messages
-				s := n.s.Get(group, id, peer)
-				if !n.ms.HasMessage(id) && s.SendEpoch <= n.epoch {
-					pls[group][peer].Request.Id = append(pls[group][peer].Request.Id, id[:])
-
-					s.HoldFlag = true
-					n.s.Set(group, id, peer, s)
-
-					n.updateSendEpoch(group, id, peer)
-				}
 			}
 		}
 	}
@@ -286,41 +316,12 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 				s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
 				// @todo do we wanna send messages like in interactive mode?
 			}
-
-			// send requested Messages
-			if s.RequestFlag {
-				m, err := n.ms.GetMessage(id)
-				if err != nil {
-					log.Printf("error retreiving message: %s", err)
-					return s
-				}
-
-				pls[group][peer].Messages = append(pls[group][peer].Messages, &m)
-				s.SendCount += 1
-				s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
-				s.RequestFlag = false
-			}
 		}
 
 		return s
 	})
 
 	return pls
-}
-
-func (n *Node) offerMessage(group GroupID, sender PeerId, id MessageID) {
-	n.Lock()
-	defer n.Unlock()
-
-	if _, ok := n.offeredMessages[group]; !ok {
-		n.offeredMessages[group] = make(map[PeerId][]MessageID)
-	}
-
-	if _, ok := n.offeredMessages[group][sender]; !ok {
-		n.offeredMessages[group][sender] = make([]MessageID, 0)
-	}
-
-	n.offeredMessages[group][sender] = append(n.offeredMessages[group][sender], id)
 }
 
 func (n *Node) updateSendEpoch(g GroupID, m MessageID, p PeerId) {
