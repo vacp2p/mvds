@@ -84,6 +84,9 @@ func (n *Node) Run() {
 
 // AppendMessage sends a message to a given group.
 func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
+
+	// @todo because we don't lock here we seem to get to a point where we can no longer append?
+
 	m := Message{
 		GroupId:   group[:],
 		Timestamp: time.Now().Unix(),
