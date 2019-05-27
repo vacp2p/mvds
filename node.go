@@ -26,10 +26,14 @@ type State struct {
 type Node struct {
 	sync.Mutex
 
+	// @todo longer name
 	ms MessageStore
 	st Transport
 
-	s               syncState
+	// @todo rename to `syncState`
+	s syncState
+
+	// @todo extract to separate types and use locks in them
 	offeredMessages map[GroupID]map[PeerId][]MessageID
 	sharing         map[GroupID][]PeerId
 	peers           map[GroupID][]PeerId
@@ -62,6 +66,21 @@ func (n *Node) Run() {
 
 	// @todo maybe some waiting?
 
+	// @todo: replace with somethind like that
+	//
+	// epochs := NewEpochs()
+	//
+	// quit := make(chan struct{})
+	//
+	//
+	// go n.readLoop(epochs, quit)
+	// go n.writeLoop(epochs, quit)
+	//
+	// select {
+	//     case <- quit:
+	//        }
+	// for loop should be in the readloop and writeloop
+	// Epochs struct can have 2 methods `Current()` and `Increment()` and be thread-safe
 
 	for {
 		<-time.After(1 * time.Second)

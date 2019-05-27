@@ -1,5 +1,7 @@
 package mvds
 
+// @todo: rename this file to `sync_messageid.go` to show that it is related to
+// sync.pb.go
 import (
 	"crypto/sha256"
 	"encoding/binary"
