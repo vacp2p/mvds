@@ -256,7 +256,7 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 	return nil
 }
 
-func (n *Node) updateSendEpoch(s state) state {
+func (n Node) updateSendEpoch(s state) state {
 	s.SendCount += 1
 	s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
 	return s
