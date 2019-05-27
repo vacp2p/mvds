@@ -47,6 +47,9 @@ func (s syncState) Iterate() map[GroupID]map[MessageID]map[PeerId]state {
 }
 
 func (s syncState) Map(process func(g GroupID, m MessageID, p PeerId, s state) state) {
+	s.Lock()
+	defer s.Unlock()
+
 	for group, syncstate := range s.state {
 		for id, peers := range syncstate {
 			for peer, state := range peers {
