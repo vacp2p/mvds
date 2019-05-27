@@ -59,7 +59,7 @@ func (n *Node) Run() {
 	for {
 		<-time.After(1 * time.Second)
 
-		go n.sendMessages() // @todo probably not that efficient here
+		n.sendMessages() // @todo probably not that efficient here
 		n.epoch += 1
 	}
 }

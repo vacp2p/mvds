@@ -82,8 +82,8 @@ func (p *Payloads) AddMessages(group GroupID, peer PeerId, messages ...*Message)
 }
 
 func (p *Payloads) Map(f func(GroupID, PeerId, Payload)) {
-	p.RLock()
-	defer p.RUnlock()
+	p.Lock()
+	defer p.Unlock()
 
 	for g, payloads := range p.payloads {
 		for peer, payload := range payloads {
