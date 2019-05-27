@@ -273,9 +273,9 @@ func (n *Node) payloads() map[GroupID]map[PeerId]*Payload {
 			s.AckFlag = false
 		}
 
-		if n.IsPeerInGroup(group, peer) && s.SendEpoch <= n.epoch {
+		if n.IsPeerInGroup(group, peer) {
 			// Offer Messages
-			if !s.HoldFlag {
+			if !s.HoldFlag && s.SendEpoch <= n.epoch {
 				pls[group][peer].Offer.Id = append(pls[group][peer].Offer.Id, id[:])
 				s.SendCount += 1
 				s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
