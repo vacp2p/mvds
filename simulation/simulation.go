@@ -38,9 +38,9 @@ func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerI
 
 func main() {
 
-	ain := make(chan mvds.Packet, 10)
-	bin := make(chan mvds.Packet, 10)
-	cin := make(chan mvds.Packet, 10)
+	ain := make(chan mvds.Packet, 100)
+	bin := make(chan mvds.Packet, 100)
+	cin := make(chan mvds.Packet, 100)
 
 	at := &Transport{in: ain, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
 	bt := &Transport{in: bin, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
@@ -96,7 +96,7 @@ func chat(group mvds.GroupID, nodes ...*mvds.Node) {
 		time.Sleep(5 * time.Second)
 
 		for _, n := range nodes {
-			_, err := n.AppendMessage(group, []byte("test"))
+			_, err := n.AppendMessage(group, []byte(fmt.Sprintf("%x testing", n.ID)))
 			if err != nil {
 				fmt.Println(err)
 			}

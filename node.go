@@ -86,20 +86,23 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 
 	id := m.ID()
 
-	for g, peers := range n.peers {
-		for _, p := range peers {
-			if !n.IsPeerInGroup(group, p) {
-				continue
+	go func () {
+		for g, peers := range n.peers {
+			for _, p := range peers {
+				if !n.IsPeerInGroup(group, p) {
+					continue
+				}
+
+				// @todo store a sync state only for Offers
+
+				s := state{}
+				s.SendEpoch = n.epoch + 1
+				n.syncState.Set(g, id, p, s)
 			}
-
-			// @todo store a sync state only for Offers
-
-			s := state{}
-			s.SendEpoch = n.epoch + 1
-			n.syncState.Set(g, id, p, s)
 		}
-	}
+	}()
 
+	log.Printf("Node %x Appended %x to Sync State\n", n.ID.toBytes()[:4], id[:][:4])
 	// @todo think about a way to insta trigger send messages when send was selected, we don't wanna wait for ticks here
 
 	return id, nil
