@@ -59,6 +59,7 @@ func (n *Node) Run() {
 
 	go func() {
 		for {
+			log.Printf("Node: %x Epoch: %d", n.ID.toBytes()[:4], n.epoch)
 			time.Sleep(1 * time.Second)
 
 			n.sendMessages()
