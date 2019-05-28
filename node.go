@@ -16,12 +16,12 @@ type calculateNextEpoch func(count uint64, epoch int64) int64
 type PeerId ecdsa.PublicKey
 
 type Node struct {
-	ms MessageStore
-	st Transport
+	store     MessageStore
+	transport Transport
 
-	s       syncState
-	sharing map[GroupID][]PeerId
-	peers   map[GroupID][]PeerId
+	syncState syncState
+	sharing   map[GroupID][]PeerId
+	peers     map[GroupID][]PeerId
 
 	payloads Payloads
 
@@ -34,9 +34,9 @@ type Node struct {
 
 func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerId) *Node {
 	return &Node{
-		ms:        ms,
-		st:        st,
-		s:         syncState{state: make(map[GroupID]map[MessageID]map[PeerId]state)},
+		store:     ms,
+		transport: st,
+		syncState: NewSyncState(),
 		sharing:   make(map[GroupID][]PeerId),
 		peers:     make(map[GroupID][]PeerId),
 		payloads:  Payloads{payloads: make(map[GroupID]map[PeerId]Payload)},
@@ -52,7 +52,7 @@ func (n *Node) Run() {
 	// this will be completely legitimate with new payload handling
 	go func() {
 		for {
-			p := n.st.Watch()
+			p := n.transport.Watch()
 			n.onPayload(p.Group, p.Sender, p.Payload)
 		}
 	}()
@@ -78,7 +78,7 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 		Body:      data,
 	}
 
-	err := n.ms.SaveMessage(m)
+	err := n.store.Add(m)
 	if err != nil {
 		return MessageID{}, err
 	}
@@ -93,9 +93,9 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 
 			// @todo store a sync state only for Offers
 
-			s := n.s.Get(g, id, p)
+			s := n.syncState.Get(g, id, p)
 			s.SendEpoch = n.epoch + 1
-			n.s.Set(g, id, p, s)
+			n.syncState.Set(g, id, p, s)
 		}
 	}
 
@@ -122,7 +122,7 @@ func (n *Node) Share(group GroupID, id PeerId) {
 }
 
 func (n *Node) sendMessages() {
-	n.s.Map(func(g GroupID, m MessageID, p PeerId, s state) state {
+	n.syncState.Map(func(g GroupID, m MessageID, p PeerId, s state) state {
 		if s.SendEpoch < n.epoch || !n.IsPeerInGroup(g, p) {
 			return s
 		}
@@ -132,7 +132,7 @@ func (n *Node) sendMessages() {
 	})
 
 	n.payloads.Map(func(id GroupID, peer PeerId, payload Payload) {
-		err := n.st.Send(id, n.ID, peer, payload)
+		err := n.transport.Send(id, n.ID, peer, payload)
 		if err != nil {
 			//	@todo
 		}
@@ -167,7 +167,7 @@ func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) [][]byte {
 		log.Printf("[%x] OFFER (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 
 		// @todo maybe ack?
-		if n.ms.HasMessage(id) {
+		if n.store.Has(id) {
 			continue
 		}
 
@@ -189,13 +189,13 @@ func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
 			continue
 		}
 
-		message, err := n.ms.GetMessage(id)
+		message, err := n.store.Get(id)
 		if err != nil {
 			log.Printf("error requesting message %x", id[:4])
 			continue
 		}
 
-		n.s.Set(group, id, sender, n.updateSendEpoch(n.s.Get(group, id, sender)))
+		n.syncState.Set(group, id, sender, n.updateSendEpoch(n.syncState.Get(group, id, sender)))
 
 		m = append(m, &message)
 	}
@@ -208,7 +208,7 @@ func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
 
-		n.s.Remove(group, id, sender)
+		n.syncState.Remove(group, id, sender)
 
 		log.Printf("[%x] ACK (%x -> %x): %x received.\n", group[:4], sender.toBytes()[:4], n.ID.toBytes()[:4], id[:4])
 	}
@@ -239,7 +239,7 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 
 	// @todo share message with those around us
 
-	err := n.ms.SaveMessage(msg)
+	err := n.store.Add(msg)
 	if err != nil {
 		return err
 		// @todo process, should this function ever even have an error?

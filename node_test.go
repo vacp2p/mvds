@@ -21,7 +21,7 @@ func TestOnRequest(t *testing.T) {
 	p := randomPeerId()
 	n.onRequest(g, p, r)
 
-	if n.s.Get(g, m, p).RequestFlag != true {
+	if n.syncState.Get(g, m, p).RequestFlag != true {
 		t.Errorf("did not set Request flag to true")
 	}
 }
@@ -38,7 +38,7 @@ func TestOnAck(t *testing.T) {
 	p := randomPeerId()
 	n.onAck(g, p, a)
 
-	if n.s.Get(g, m, p).HoldFlag != true {
+	if n.syncState.Get(g, m, p).HoldFlag != true {
 		t.Errorf("did not set Hold flag to true")
 	}
 }
@@ -55,7 +55,7 @@ func TestOnOffer(t *testing.T) {
 	p := randomPeerId()
 	n.onOffer(g, p, o)
 
-	if n.s.Get(g, m, p).HoldFlag != true {
+	if n.syncState.Get(g, m, p).HoldFlag != true {
 		t.Errorf("did not set Hold flag to true")
 	}
 
@@ -69,7 +69,7 @@ func TestOnMessage(t *testing.T) {
 	g := GroupID{}
 
 	ds := NewDummyStore()
-	n.ms = &ds
+	n.store = &ds
 
 	id := randomMessageId()
 
@@ -83,7 +83,7 @@ func TestOnMessage(t *testing.T) {
 
 	n.onMessage(g, p, m)
 
-	sm, _ := n.ms.GetMessage(m.ID())
+	sm, _ := n.store.Get(m.ID())
 	if !reflect.DeepEqual(sm, m) {
 		t.Errorf("message was not stored correctly")
 	}
@@ -97,7 +97,7 @@ func TestOnMessage(t *testing.T) {
 
 func getNodeForMessageHandlerTest() Node {
 	n := Node{}
-	n.s = syncState{state: make(map[GroupID]map[MessageID]map[PeerId]*State)}
+	n.syncState = syncState{state: make(map[GroupID]map[MessageID]map[PeerId]*State)}
 	n.offeredMessages = make(map[GroupID]map[PeerId][]MessageID)
 	n.ID = randomPeerId()
 	return n

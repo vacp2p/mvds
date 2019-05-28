@@ -13,6 +13,11 @@ type syncState struct {
 	state map[GroupID]map[MessageID]map[PeerId]state
 }
 
+func NewSyncState() syncState {
+	return syncState{
+		state: make(map[GroupID]map[MessageID]map[PeerId]state),
+	}
+}
 
 func (s syncState) Get(group GroupID, id MessageID, sender PeerId) state {
 	s.RLock()
