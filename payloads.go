@@ -5,7 +5,7 @@ import (
 )
 
 type Payloads struct {
-	sync.RWMutex
+	sync.Mutex
 
 	payloads map[GroupID]map[PeerId]Payload
 }
