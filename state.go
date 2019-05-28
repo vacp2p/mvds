@@ -8,7 +8,7 @@ type state struct {
 }
 
 type syncState struct {
-	sync.RWMutex
+	sync.Mutex
 
 	state map[GroupID]map[MessageID]map[PeerId]state
 }
@@ -20,8 +20,8 @@ func newSyncState() syncState {
 }
 
 func (s syncState) Get(group GroupID, id MessageID, sender PeerId) state {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	state, _ := s.state[group][id][sender]
 	return state
