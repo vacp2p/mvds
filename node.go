@@ -36,7 +36,7 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 	return &Node{
 		store:     ms,
 		transport: st,
-		syncState: NewSyncState(),
+		syncState: newSyncState(),
 		sharing:   make(map[GroupID][]PeerId),
 		peers:     make(map[GroupID][]PeerId),
 		payloads:  Payloads{payloads: make(map[GroupID]map[PeerId]Payload)},

@@ -13,7 +13,7 @@ type syncState struct {
 	state map[GroupID]map[MessageID]map[PeerId]state
 }
 
-func NewSyncState() syncState {
+func newSyncState() syncState {
 	return syncState{
 		state: make(map[GroupID]map[MessageID]map[PeerId]state),
 	}
