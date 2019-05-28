@@ -202,6 +202,8 @@ func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
 		n.syncState.Set(group, id, sender, n.updateSendEpoch(n.syncState.Get(group, id, sender)))
 
 		m = append(m, &message)
+
+		log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID.toBytes()[:4], sender.toBytes()[:4], id[:4])
 	}
 
 	return m
