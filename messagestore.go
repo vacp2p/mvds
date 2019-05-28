@@ -2,6 +2,8 @@ package mvds
 
 import (
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 type MessageStore interface {
@@ -30,7 +32,12 @@ func (ds *DummyStore) GetMessage(id MessageID) (Message, error) {
 	ds.Lock()
 	defer ds.Unlock()
 
-	m, _ := ds.ms[id]; return m, nil
+	m, ok := ds.ms[id]
+	if !ok {
+		return Message{}, errors.New("message does not exist")
+	}
+
+	return m, nil
 }
 
 func (ds *DummyStore) SaveMessage(message Message) error {

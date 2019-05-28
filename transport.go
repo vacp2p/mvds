@@ -7,6 +7,6 @@ type Packet struct {
 }
 
 type Transport interface {
-	Watch() *Packet // @todo might need be changed in the future
+	Watch() Packet // @todo might need be changed in the future
 	Send(group GroupID, sender PeerId, peer PeerId, payload Payload) error
 }
