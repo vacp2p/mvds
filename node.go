@@ -94,7 +94,7 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 
 			// @todo store a sync state only for Offers
 
-			s := n.syncState.Get(g, id, p)
+			s := state{}
 			s.SendEpoch = n.epoch + 1
 			n.syncState.Set(g, id, p, s)
 		}
