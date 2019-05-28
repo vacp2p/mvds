@@ -24,9 +24,6 @@ func (t *Transport) Watch() mvds.Packet {
 }
 
 func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
-	t.Lock()
-	defer t.Unlock()
-
 	c, ok := t.out[peer]
 	if !ok {
 		return errors.New("peer unknown")

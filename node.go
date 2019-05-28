@@ -53,7 +53,7 @@ func (n *Node) Run() {
 	go func() {
 		for {
 			p := n.transport.Watch()
-			n.onPayload(p.Group, p.Sender, p.Payload)
+			go n.onPayload(p.Group, p.Sender, p.Payload)
 		}
 	}()
 
