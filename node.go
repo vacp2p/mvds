@@ -102,7 +102,7 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 		}
 	}()
 
-	log.Printf("Node %x Appended %x to Sync State\n", n.ID.toBytes()[:4], id[:][:4])
+	log.Printf("[%x] node %x sending %x\n", group[:4], n.ID.toBytes()[:4], id[:4])
 	// @todo think about a way to insta trigger send messages when send was selected, we don't wanna wait for ticks here
 
 	return id, nil
