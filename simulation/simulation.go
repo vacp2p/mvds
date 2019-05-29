@@ -4,10 +4,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"flag"
-	math "math/rand"
 	"errors"
+	"flag"
 	"fmt"
+	math "math/rand"
 	"sync"
 	"time"
 
@@ -15,6 +15,7 @@ import (
 )
 
 var offline int
+var nodeCount int
 
 type Transport struct {
 	sync.Mutex
@@ -44,56 +45,52 @@ func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerI
 func init() {
 	flag.IntVar(&offline, "offline", 90, "percentage of node being offline")
 	flag.Parse()
+
+	flag.IntVar(&nodeCount, "nodes", 3, "amount of nodes")
+	flag.Parse()
 }
 
 func main() {
 
-	ain := make(chan mvds.Packet, 100)
-	bin := make(chan mvds.Packet, 100)
-	cin := make(chan mvds.Packet, 100)
+	transports := make([]*Transport, 0)
+	input := make([]chan mvds.Packet, 0)
+	nodes := make([]*mvds.Node, 0)
+	for i := 0; i < nodeCount; i++ {
+		in := make(chan mvds.Packet)
 
-	at := &Transport{in: ain, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
-	bt := &Transport{in: bin, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
-	ct := &Transport{in: cin, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
+		transport := &Transport{
+			in: in,
+			out: make(map[mvds.PeerId]chan<- mvds.Packet),
+		}
+
+		input = append(input, in)
+		transports = append(transports, transport)
+		nodes = append(nodes, createNode(transport, peerId()))
+	}
 
 	group := groupId("meme kings")
+	// @todo add multiple groups
+	// @todo maybe dms?
 
-	na := createNode(at, peerId())
-	nb := createNode(bt, peerId())
-	nc := createNode(ct, peerId())
+	// @todo allow for not all nodes to be peered and sharing to test how that looks
+	for i, n := range nodes {
+		for j, p := range nodes {
+			if j == i {
+				continue
+			}
 
-	at.out[nb.ID] = bin
-	at.out[nc.ID] = cin
+			transports[i].out[p.ID] = input[j]
+			n.AddPeer(group, p.ID)
+			n.Share(group, p.ID)
+		}
+	}
 
-	bt.out[na.ID] = ain
-	bt.out[nc.ID] = cin
+	for _, n := range nodes {
+		n.Run()
+	}
 
-	ct.out[na.ID] = ain
-	ct.out[nb.ID] = bin
-
-	na.AddPeer(group, nb.ID)
-	na.AddPeer(group, nc.ID)
-
-	nb.AddPeer(group, na.ID)
-	nb.AddPeer(group, nc.ID)
-
-	nc.AddPeer(group, na.ID)
-	nc.AddPeer(group, nb.ID)
-
-	na.Share(group, nb.ID)
-	na.Share(group, nc.ID)
-
-	nb.Share(group, na.ID)
-	nb.Share(group, nc.ID)
-
-	nc.Share(group, na.ID)
-	nc.Share(group, nb.ID)
-
-	na.Run()
-	nb.Run()
-	nc.Run()
-
-	chat(group, na, nb)
+	// @todo configure how many nodes should be chatting
+	chat(group, nodes[:len(nodes)-2]...)
 }
 
 func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
