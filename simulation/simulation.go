@@ -16,6 +16,7 @@ import (
 
 var offline int
 var nodeCount int
+var communicating int
 
 type Transport struct {
 	sync.Mutex
@@ -45,6 +46,7 @@ func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerI
 func init() {
 	flag.IntVar(&offline, "offline", 90, "percentage of time a node is offline")
 	flag.IntVar(&nodeCount, "nodes", 3, "amount of nodes")
+	flag.IntVar(&communicating, "communicating", 2, "amount of nodes sending messages")
 	flag.Parse()
 }
 
@@ -87,8 +89,7 @@ func main() {
 		n.Run()
 	}
 
-	// @todo configure how many nodes should be chatting
-	chat(group, nodes[:len(nodes)-2]...)
+	chat(group, nodes[:communicating-1]...)
 }
 
 func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
