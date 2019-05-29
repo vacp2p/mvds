@@ -74,7 +74,11 @@ func main() {
 	// @todo add multiple groups, only one or so nodes in every group so there is overlap
 	// @todo maybe dms?
 
-	// @todo allow for not all nodes to be peered and sharing to test how that looks
+	// @todo allow for selecting how many nodes will be paired, this works as follows:
+	// we paramterize K and then pair to K nodes of the set N
+	// where K must be <= (N-1) ensuring we never pair with ourselves
+	// if K == N - 1 we pair with all nodes
+	// otherwise we select K nodes where Node X is not equal to self
 	for i, n := range nodes {
 		for j, p := range nodes {
 			if j == i {
