@@ -43,9 +43,7 @@ func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerI
 }
 
 func init() {
-	flag.IntVar(&offline, "offline", 90, "percentage of node being offline")
-	flag.Parse()
-
+	flag.IntVar(&offline, "offline", 90, "percentage of time a node is offline")
 	flag.IntVar(&nodeCount, "nodes", 3, "amount of nodes")
 	flag.Parse()
 }
