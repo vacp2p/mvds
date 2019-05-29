@@ -3,7 +3,6 @@ package mvds
 // @todo this is a very rough implementation that needs cleanup
 
 import (
-	"crypto/ecdsa"
 	"crypto/elliptic"
 	"log"
 	"sync/atomic"
@@ -13,7 +12,6 @@ import (
 )
 
 type calculateNextEpoch func(count uint64, epoch int64) int64
-type PeerId ecdsa.PublicKey
 
 type Node struct {
 	store     MessageStore
@@ -275,12 +273,4 @@ func toMessageID(b []byte) MessageID {
 	var id MessageID
 	copy(id[:], b)
 	return id
-}
-
-func (p PeerId) ToBytes() []byte {
-	if p.X == nil || p.Y == nil {
-		return nil
-	}
-
-	return elliptic.Marshal(crypto.S256(), p.X, p.Y)
 }
