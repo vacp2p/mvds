@@ -94,7 +94,7 @@ func TestNode_updateSendEpoch(t *testing.T) {
 	}
 
 	if s.SendCount != 1 {
-		t.Errorf("SendCount expected: %d actual: %d", 1, s.SendEpoch)
+		t.Errorf("SendCount expected: %d actual: %d", 1, s.SendCount)
 	}
 }
 
