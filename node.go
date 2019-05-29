@@ -65,9 +65,6 @@ func (n *Node) Run() {
 
 // AppendMessage sends a message to a given group.
 func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
-
-	// @todo because we don't lock here we seem to get to a point where we can no longer append?
-
 	m := Message{
 		GroupId:   group[:],
 		Timestamp: time.Now().Unix(),
@@ -87,8 +84,6 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 				if !n.IsPeerInGroup(group, p) {
 					continue
 				}
-
-				// @todo store a sync state only for Offers
 
 				s := state{}
 				s.SendEpoch = n.epoch + 1
@@ -143,6 +138,7 @@ func (n *Node) sendMessages() {
 	n.payloads.Map(func(id GroupID, peer PeerId, payload Payload) {
 		err := n.transport.Send(id, n.ID, peer, payload)
 		if err != nil {
+			log.Printf("error sending message: %s", err.Error())
 			//	@todo
 		}
 	})
@@ -214,7 +210,6 @@ func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
 	return m
 }
 
-// @todo this should return nothing?
 func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
@@ -243,7 +238,6 @@ func (n *Node) onMessages(group GroupID, sender PeerId, messages []*Message) [][
 	return a
 }
 
-// @todo this should return ACKs
 func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 	id := msg.ID()
 	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.ToBytes()[:4], n.ID.ToBytes()[:4], id[:4])
@@ -256,7 +250,6 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 		// @todo process, should this function ever even have an error?
 	}
 
-	// @todo push message somewhere for end user
 	return nil
 }
 
