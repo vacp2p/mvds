@@ -85,8 +85,10 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 					continue
 				}
 
-				s := state{}
-				s.SendEpoch = n.epoch + 1
+				s := state{
+					Type: OFFER,
+					SendEpoch: n.epoch + 1,
+				}
 				n.syncState.Set(g, id, p, s)
 			}
 		}
@@ -131,7 +133,13 @@ func (n *Node) sendMessages() {
 			return s
 		}
 
-		n.payloads.AddOffers(g, p, m[:])
+		switch s.Type {
+		case OFFER:
+			n.payloads.AddOffers(g, p, m[:])
+		case REQUEST:
+			n.payloads.AddRequests(g, p, m[:])
+		}
+
 		return n.updateSendEpoch(s)
 	})
 
@@ -175,6 +183,12 @@ func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) [][]byte {
 		if n.store.Has(id) {
 			continue
 		}
+
+		s := state{
+			Type: REQUEST,
+			SendEpoch: n.epoch + 2, // @todo we wanna update send time here because from this block we are already sending in current epoch
+		}
+		n.syncState.Set(group, id, sender, s)
 
 		r = append(r, raw)
 		log.Printf("[%x] sending REQUEST (%x -> %x): %x\n", group[:4], n.ID.ToBytes()[:4], sender.ToBytes()[:4], id[:4])
@@ -220,6 +234,7 @@ func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
 	}
 }
 
+// @todo maybe also return offers for our peers?
 func (n *Node) onMessages(group GroupID, sender PeerId, messages []*Message) [][]byte {
 	a := make([][]byte, 0)
 
@@ -243,6 +258,7 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.ToBytes()[:4], n.ID.ToBytes()[:4], id[:4])
 
 	// @todo share message with those around us
+	n.syncState.Remove(group, id, sender)
 
 	err := n.store.Add(msg)
 	if err != nil {

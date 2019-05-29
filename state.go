@@ -1,8 +1,16 @@
 package mvds
 
+type MessageType int
+
+const (
+	OFFER   MessageType = 0
+	REQUEST             = 1
+)
+
 type state struct {
-	SendCount   uint64
-	SendEpoch   int64
+	Type      MessageType
+	SendCount uint64
+	SendEpoch int64
 }
 
 type syncState interface {
