@@ -72,7 +72,8 @@ func TestNode_onAck(t *testing.T) {
 
 	state.
 		EXPECT().
-		Remove(group, toMessageID(id), peer)
+		Remove(group, toMessageID(id), peer).
+		Times(1)
 
 	ack := Ack{Id: [][]byte{id}}
 
