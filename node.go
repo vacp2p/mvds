@@ -3,12 +3,9 @@ package mvds
 // @todo this is a very rough implementation that needs cleanup
 
 import (
-	"crypto/elliptic"
 	"log"
 	"sync/atomic"
 	"time"
-
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type calculateNextEpoch func(count uint64, epoch int64) int64
