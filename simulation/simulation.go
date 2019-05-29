@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	math "math/rand"
 	"sync"
 	"time"
@@ -14,10 +15,13 @@ import (
 	"github.com/status-im/mvds"
 )
 
-var offline int
-var nodeCount int
-var communicating int
-var interval int64
+var (
+	offline int
+	nodeCount int
+	communicating int
+	sharing int
+	interval int64
+)
 
 type Transport struct {
 	sync.Mutex
@@ -31,6 +35,7 @@ func (t *Transport) Watch() mvds.Packet {
 }
 
 func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
+	math.Seed(time.Now().UnixNano())
 	if math.Intn(100) < offline {
 		return nil
 	}
@@ -48,11 +53,14 @@ func init() {
 	flag.IntVar(&offline, "offline", 90, "percentage of time a node is offline")
 	flag.IntVar(&nodeCount, "nodes", 3, "amount of nodes")
 	flag.IntVar(&communicating, "communicating", 2, "amount of nodes sending messages")
+	flag.IntVar(&sharing, "sharing", 2, "amount of nodes each node shares with")
 	flag.Int64Var(&interval, "interval", 5, "seconds between messages")
 	flag.Parse()
 }
 
 func main() {
+
+	// @todo validate flags
 
 	transports := make([]*Transport, 0)
 	input := make([]chan mvds.Packet, 0)
@@ -74,20 +82,16 @@ func main() {
 	// @todo add multiple groups, only one or so nodes in every group so there is overlap
 	// @todo maybe dms?
 
-	// @todo allow for selecting how many nodes will be paired, this works as follows:
-	// we paramterize K and then pair to K nodes of the set N
-	// where K must be <= (N-1) ensuring we never pair with ourselves
-	// if K == N - 1 we pair with all nodes
-	// otherwise we select K nodes where Node X is not equal to self
 	for i, n := range nodes {
-		for j, p := range nodes {
-			if j == i {
-				continue
-			}
+		peers := selectPeers(nodes, i, sharing)
+		for _, p := range peers {
+			peer := nodes[p].ID
 
-			transports[i].out[p.ID] = input[j]
-			n.AddPeer(group, p.ID)
-			n.Share(group, p.ID)
+			transports[i].out[peer] = input[p]
+			n.AddPeer(group, peer)
+			n.Share(group, peer)
+
+			log.Printf("%x sharing with %x", n.ID.ToBytes()[:4], peer.ToBytes()[:4])
 		}
 	}
 
@@ -96,6 +100,32 @@ func main() {
 	}
 
 	chat(group, nodes[:communicating-1]...)
+}
+
+func selectPeers(nodes []*mvds.Node, currentNode int, sharing int) []int {
+	peers := make([]int, 0)
+
+	for {
+		if len(peers) == sharing {
+			break
+		}
+
+		math.Seed(time.Now().UnixNano())
+		i := math.Intn(len(nodes))
+		if i == currentNode {
+			continue
+		}
+
+		for _, p := range peers {
+			if i == p {
+				continue
+			}
+		}
+
+		peers = append(peers, i)
+	}
+
+	return peers
 }
 
 func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
