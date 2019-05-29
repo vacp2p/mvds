@@ -4,6 +4,8 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"flag"
+	math "math/rand"
 	"errors"
 	"fmt"
 	"sync"
@@ -11,6 +13,8 @@ import (
 
 	"github.com/status-im/mvds"
 )
+
+var offline int
 
 type Transport struct {
 	sync.Mutex
@@ -24,6 +28,10 @@ func (t *Transport) Watch() mvds.Packet {
 }
 
 func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
+	if math.Intn(100) < offline {
+		return nil
+	}
+
 	c, ok := t.out[peer]
 	if !ok {
 		return errors.New("peer unknown")
@@ -31,6 +39,11 @@ func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerI
 
 	c <- mvds.Packet{Group: group, Sender: sender, Payload: payload}
 	return nil
+}
+
+func init() {
+	flag.IntVar(&offline, "offline", 90, "percentage of node being offline")
+	flag.Parse()
 }
 
 func main() {
