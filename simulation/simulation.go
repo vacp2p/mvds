@@ -70,8 +70,8 @@ func main() {
 		nodes = append(nodes, createNode(transport, peerId()))
 	}
 
-	group := groupId("meme kings")
-	// @todo add multiple groups
+	group := groupId()
+	// @todo add multiple groups, only one or so nodes in every group so there is overlap
 	// @todo maybe dms?
 
 	// @todo allow for not all nodes to be peered and sharing to test how that looks
@@ -121,9 +121,12 @@ func peerId() mvds.PeerId {
 	return mvds.PeerId(key.PublicKey)
 }
 
-func groupId(n string) mvds.GroupID {
-	bytes := []byte(n)
+func groupId() mvds.GroupID {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+
 	id := mvds.GroupID{}
 	copy(id[:], bytes)
+
 	return id
 }
