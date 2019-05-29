@@ -5,11 +5,22 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"errors"
+	"flag"
 	"fmt"
+	"log"
+	math "math/rand"
 	"sync"
 	"time"
 
 	"github.com/status-im/mvds"
+)
+
+var (
+	offline int
+	nodeCount int
+	communicating int
+	sharing int
+	interval int64
 )
 
 type Transport struct {
@@ -24,6 +35,11 @@ func (t *Transport) Watch() mvds.Packet {
 }
 
 func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
+	math.Seed(time.Now().UnixNano())
+	if math.Intn(100) < offline {
+		return nil
+	}
+
 	c, ok := t.out[peer]
 	if !ok {
 		return errors.New("peer unknown")
@@ -33,54 +49,83 @@ func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerI
 	return nil
 }
 
+func init() {
+	flag.IntVar(&offline, "offline", 90, "percentage of time a node is offline")
+	flag.IntVar(&nodeCount, "nodes", 3, "amount of nodes")
+	flag.IntVar(&communicating, "communicating", 2, "amount of nodes sending messages")
+	flag.IntVar(&sharing, "sharing", 2, "amount of nodes each node shares with")
+	flag.Int64Var(&interval, "interval", 5, "seconds between messages")
+	flag.Parse()
+}
+
 func main() {
 
-	ain := make(chan mvds.Packet, 100)
-	bin := make(chan mvds.Packet, 100)
-	cin := make(chan mvds.Packet, 100)
+	// @todo validate flags
 
-	at := &Transport{in: ain, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
-	bt := &Transport{in: bin, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
-	ct := &Transport{in: cin, out: make(map[mvds.PeerId]chan<- mvds.Packet)}
+	transports := make([]*Transport, 0)
+	input := make([]chan mvds.Packet, 0)
+	nodes := make([]*mvds.Node, 0)
+	for i := 0; i < nodeCount; i++ {
+		in := make(chan mvds.Packet)
 
-	group := groupId("meme kings")
+		transport := &Transport{
+			in: in,
+			out: make(map[mvds.PeerId]chan<- mvds.Packet),
+		}
 
-	na := createNode(at, peerId())
-	nb := createNode(bt, peerId())
-	nc := createNode(ct, peerId())
+		input = append(input, in)
+		transports = append(transports, transport)
+		nodes = append(nodes, createNode(transport, peerId()))
+	}
 
-	at.out[nb.ID] = bin
-	at.out[nc.ID] = cin
+	group := groupId()
+	// @todo add multiple groups, only one or so nodes in every group so there is overlap
+	// @todo maybe dms?
 
-	bt.out[na.ID] = ain
-	bt.out[nc.ID] = cin
+	for i, n := range nodes {
+		peers := selectPeers(nodes, i, sharing)
+		for _, p := range peers {
+			peer := nodes[p].ID
 
-	ct.out[na.ID] = ain
-	ct.out[nb.ID] = bin
+			transports[i].out[peer] = input[p]
+			n.AddPeer(group, peer)
+			n.Share(group, peer)
 
-	na.AddPeer(group, nb.ID)
-	na.AddPeer(group, nc.ID)
+			log.Printf("%x sharing with %x", n.ID.ToBytes()[:4], peer.ToBytes()[:4])
+		}
+	}
 
-	nb.AddPeer(group, na.ID)
-	nb.AddPeer(group, nc.ID)
+	for _, n := range nodes {
+		n.Run()
+	}
 
-	nc.AddPeer(group, na.ID)
-	nc.AddPeer(group, nb.ID)
+	chat(group, nodes[:communicating-1]...)
+}
 
-	na.Share(group, nb.ID)
-	na.Share(group, nc.ID)
+func selectPeers(nodes []*mvds.Node, currentNode int, sharing int) []int {
+	peers := make([]int, 0)
 
-	nb.Share(group, na.ID)
-	nb.Share(group, nc.ID)
+	for {
+		if len(peers) == sharing {
+			break
+		}
 
-	nc.Share(group, na.ID)
-	nc.Share(group, nb.ID)
+		math.Seed(time.Now().UnixNano())
+		i := math.Intn(len(nodes))
+		if i == currentNode {
+			continue
+		}
 
-	na.Run()
-	nb.Run()
-	nc.Run()
+		for _, p := range peers {
+			if i == p {
+				continue
+			}
+		}
 
-	chat(group, na, nb)
+		peers = append(peers, i)
+	}
+
+	return peers
 }
 
 func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
@@ -90,7 +135,7 @@ func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
 
 func chat(group mvds.GroupID, nodes ...*mvds.Node) {
 	for {
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(interval) * time.Second)
 
 		for _, n := range nodes {
 			_, err := n.AppendMessage(group, []byte(fmt.Sprintf("%x testing", n.ID)))
@@ -110,9 +155,12 @@ func peerId() mvds.PeerId {
 	return mvds.PeerId(key.PublicKey)
 }
 
-func groupId(n string) mvds.GroupID {
-	bytes := []byte(n)
+func groupId() mvds.GroupID {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+
 	id := mvds.GroupID{}
 	copy(id[:], bytes)
+
 	return id
 }
