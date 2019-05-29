@@ -80,6 +80,24 @@ func TestNode_onAck(t *testing.T) {
 	n.onAck(group, peer, ack)
 }
 
+func TestNode_updateSendEpoch(t *testing.T) {
+	n := Node{}
+	n.nextEpoch = func(uint64, int64) int64 {
+		return 1
+	}
+
+	s := state{}
+	s = n.updateSendEpoch(s)
+
+	if s.SendEpoch != 1 {
+		t.Errorf("SendEpoch expected: %d actual: %d", 1, s.SendEpoch)
+	}
+
+	if s.SendCount != 1 {
+		t.Errorf("SendCount expected: %d actual: %d", 1, s.SendEpoch)
+	}
+}
+
 func groupId(n string) GroupID {
 	bytes := []byte(n)
 	id := GroupID{}
