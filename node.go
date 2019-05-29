@@ -23,7 +23,7 @@ type Node struct {
 	sharing   map[GroupID][]PeerId
 	peers     map[GroupID][]PeerId
 
-	payloads Payloads
+	payloads payloads
 
 	nextEpoch calculateNextEpoch
 
@@ -39,7 +39,7 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 		syncState: newSyncState(),
 		sharing:   make(map[GroupID][]PeerId),
 		peers:     make(map[GroupID][]PeerId),
-		payloads:  Payloads{payloads: make(map[GroupID]map[PeerId]Payload)},
+		payloads:  payloads{payloads: make(map[GroupID]map[PeerId]Payload)},
 		nextEpoch: nextEpoch,
 		ID:        id,
 		epoch:     0,

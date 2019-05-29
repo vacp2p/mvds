@@ -4,29 +4,14 @@ import (
 	"sync"
 )
 
-type Payloads struct {
+type payloads struct {
 	sync.Mutex
 
 	payloads map[GroupID]map[PeerId]Payload
 }
-
-func (p *Payloads) get(id GroupID, peerId PeerId) Payload {
-	payload, _ := p.payloads[id][peerId]
-	return payload
-}
-
-func (p *Payloads) set(id GroupID, peerId PeerId, payload Payload) {
-	_, ok := p.payloads[id]
-	if !ok {
-		p.payloads[id] = make(map[PeerId]Payload)
-	}
-
-	p.payloads[id][peerId] = payload
-}
-
 // @todo check in all the functions below that we aren't duplicating stuff
 
-func (p *Payloads) AddOffers(group GroupID, peer PeerId, offers ...[]byte) {
+func (p *payloads) AddOffers(group GroupID, peer PeerId, offers ...[]byte) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -40,7 +25,7 @@ func (p *Payloads) AddOffers(group GroupID, peer PeerId, offers ...[]byte) {
 	p.set(group, peer, payload)
 }
 
-func (p *Payloads) AddAcks(group GroupID, peer PeerId, acks ...[]byte) {
+func (p *payloads) AddAcks(group GroupID, peer PeerId, acks ...[]byte) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -54,7 +39,7 @@ func (p *Payloads) AddAcks(group GroupID, peer PeerId, acks ...[]byte) {
 	p.set(group, peer, payload)
 }
 
-func (p *Payloads) AddRequests(group GroupID, peer PeerId, request ...[]byte) {
+func (p *payloads) AddRequests(group GroupID, peer PeerId, request ...[]byte) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -68,7 +53,7 @@ func (p *Payloads) AddRequests(group GroupID, peer PeerId, request ...[]byte) {
 	p.set(group, peer, payload)
 }
 
-func (p *Payloads) AddMessages(group GroupID, peer PeerId, messages ...*Message) {
+func (p *payloads) AddMessages(group GroupID, peer PeerId, messages ...*Message) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -81,7 +66,7 @@ func (p *Payloads) AddMessages(group GroupID, peer PeerId, messages ...*Message)
 	p.set(group, peer, payload)
 }
 
-func (p *Payloads) Map(f func(GroupID, PeerId, Payload)) {
+func (p *payloads) Map(f func(GroupID, PeerId, Payload)) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -94,9 +79,23 @@ func (p *Payloads) Map(f func(GroupID, PeerId, Payload)) {
 	p.payloads = make(map[GroupID]map[PeerId]Payload)
 }
 
-func (p *Payloads) RemoveAll() {
+func (p *payloads) RemoveAll() {
 	p.Lock()
 	defer p.Unlock()
 
 	p.payloads = make(map[GroupID]map[PeerId]Payload)
+}
+
+func (p *payloads) get(id GroupID, peerId PeerId) Payload {
+	payload, _ := p.payloads[id][peerId]
+	return payload
+}
+
+func (p *payloads) set(id GroupID, peerId PeerId, payload Payload) {
+	_, ok := p.payloads[id]
+	if !ok {
+		p.payloads[id] = make(map[PeerId]Payload)
+	}
+
+	p.payloads[id][peerId] = payload
 }
