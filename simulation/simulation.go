@@ -17,6 +17,7 @@ import (
 var offline int
 var nodeCount int
 var communicating int
+var interval int64
 
 type Transport struct {
 	sync.Mutex
@@ -47,6 +48,7 @@ func init() {
 	flag.IntVar(&offline, "offline", 90, "percentage of time a node is offline")
 	flag.IntVar(&nodeCount, "nodes", 3, "amount of nodes")
 	flag.IntVar(&communicating, "communicating", 2, "amount of nodes sending messages")
+	flag.Int64Var(&interval, "interval", 5, "seconds between messages")
 	flag.Parse()
 }
 
@@ -99,7 +101,7 @@ func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
 
 func chat(group mvds.GroupID, nodes ...*mvds.Node) {
 	for {
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(interval) * time.Second)
 
 		for _, n := range nodes {
 			_, err := n.AppendMessage(group, []byte(fmt.Sprintf("%x testing", n.ID)))
