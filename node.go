@@ -125,6 +125,16 @@ func (n *Node) Share(group GroupID, id PeerId) {
 	n.sharing[group] = append(n.sharing[group], id)
 }
 
+func (n Node) IsPeerInGroup(g GroupID, p PeerId) bool {
+	for _, peer := range n.sharing[g] {
+		if peer == p {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (n *Node) sendMessages() {
 	n.syncState.Map(func(g GroupID, m MessageID, p PeerId, s state) state {
 		if s.SendEpoch < n.epoch || !n.IsPeerInGroup(g, p) {
@@ -259,16 +269,6 @@ func (n Node) updateSendEpoch(s state) state {
 	s.SendCount += 1
 	s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
 	return s
-}
-
-func (n Node) IsPeerInGroup(g GroupID, p PeerId) bool {
-	for _, peer := range n.sharing[g] {
-		if peer == p {
-			return true
-		}
-	}
-
-	return false
 }
 
 func toMessageID(b []byte) MessageID {
