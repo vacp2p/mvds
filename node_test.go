@@ -4,9 +4,18 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"io/ioutil"
+	"log"
 	"strconv"
 	"testing"
+
+	"github.com/golang/mock/gomock"
 )
+
+func TestMain(m *testing.M) {
+	log.SetOutput(ioutil.Discard)
+	m.Run()
+}
 
 func TestNode_IsPeerInGroup_True(t *testing.T) {
 	n := Node{}
@@ -46,6 +55,28 @@ func TestNode_IsPeerInGroup_False(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNode_onAck(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	state := NewMocksyncState(ctrl)
+
+	n := Node{}
+	n.ID = peerId()
+	n.syncState = state
+
+	group := groupId("foo")
+	peer := peerId()
+	id := []byte("test")
+
+	state.
+		EXPECT().
+		Remove(group, toMessageID(id), peer)
+
+	ack := Ack{Id: [][]byte{id}}
+
+	n.onAck(group, peer, ack)
 }
 
 func groupId(n string) GroupID {
