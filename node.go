@@ -164,7 +164,7 @@ func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
 	}
 
 	if payload.Offer != nil {
-		n.payloads.AddRequests(group, sender, n.onOffer(group, sender, *payload.Offer)...)
+		n.onOffer(group, sender, *payload.Offer)
 	}
 
 	if payload.Messages != nil {
@@ -172,8 +172,7 @@ func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
 	}
 }
 
-func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) [][]byte {
-	r := make([][]byte, 0)
+func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) {
 
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
@@ -186,15 +185,12 @@ func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) [][]byte {
 
 		s := state{
 			Type: REQUEST,
-			SendEpoch: n.epoch + 2, // @todo we wanna update send time here because from this block we are already sending in current epoch
+			SendEpoch: n.epoch + 1, // @todo we wanna update send time here because from this block we are already sending in current epoch
 		}
 		n.syncState.Set(group, id, sender, s)
 
-		r = append(r, raw)
 		log.Printf("[%x] sending REQUEST (%x -> %x): %x\n", group[:4], n.ID.ToBytes()[:4], sender.ToBytes()[:4], id[:4])
 	}
-
-	return r
 }
 
 func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
