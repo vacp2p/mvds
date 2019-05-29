@@ -12,7 +12,7 @@ In order to run a very naive simulation, use the simulation command. The simulat
 
 ```
 Usage of simulation/simulation.go:
--communicating int
+  -communicating int
     	amount of nodes sending messages (default 2)
   -interval int
     	seconds between messages (default 5)
@@ -20,6 +20,8 @@ Usage of simulation/simulation.go:
     	amount of nodes (default 3)
   -offline int
     	percentage of time a node is offline (default 90)
+  -sharing int
+    	amount of nodes each node shares with (default 2)
 ```
 
 # License
