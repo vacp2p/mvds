@@ -246,7 +246,17 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 	id := msg.ID()
 	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.ToBytes()[:4], n.ID.ToBytes()[:4], id[:4])
 
-	// @todo share message with those around us
+	go func() {
+		for _, peer := range n.peers[group] {
+			if peer == sender {
+				continue
+			}
+
+			s := state{}
+			s.SendEpoch = n.epoch + 1
+			n.syncState.Set(group, id, peer, s)
+		}
+	}()
 
 	err := n.store.Add(msg)
 	if err != nil {
