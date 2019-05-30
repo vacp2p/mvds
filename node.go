@@ -5,11 +5,12 @@ package mvds
 import (
 	"fmt"
 	"log"
-	"sync/atomic"
 	"time"
+
+	"github.com/status-im/mvds/epoch"
 )
 
-type calculateNextEpoch func(count uint64, epoch int64) int64
+type calculateNextEpoch func(count uint64, epoch uint64) uint64
 
 type Node struct {
 	store     MessageStore
@@ -25,7 +26,7 @@ type Node struct {
 
 	ID PeerId
 
-	epoch int64
+	epoch *epoch.Epoch
 }
 
 func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerId) *Node {
@@ -38,7 +39,7 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 		payloads:  payloads{payloads: make(map[GroupID]map[PeerId]Payload)},
 		nextEpoch: nextEpoch,
 		ID:        id,
-		epoch:     0,
+		epoch:     epoch.NewEpoch(),
 	}
 }
 
@@ -55,11 +56,11 @@ func (n *Node) Run() {
 
 	go func() {
 		for {
-			log.Printf("Node: %x Epoch: %d", n.ID.ToBytes()[:4], n.epoch)
+			log.Printf("Node: %x Epoch: %d", n.ID.ToBytes()[:4], n.epoch.Current())
 			time.Sleep(1 * time.Second)
 
 			n.sendMessages()
-			atomic.AddInt64(&n.epoch, 1)
+			n.epoch.Increment()
 		}
 	}()
 }
@@ -91,7 +92,7 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 			}
 
 			s := state{}
-			s.SendEpoch = n.epoch + 1
+			s.SendEpoch = n.epoch.Current() + 1
 			n.syncState.Set(group, id, p, s)
 		}
 	}()
@@ -131,7 +132,7 @@ func (n Node) IsPeerInGroup(g GroupID, p PeerId) bool {
 
 func (n *Node) sendMessages() {
 	n.syncState.Map(func(g GroupID, m MessageID, p PeerId, s state) state {
-		if s.SendEpoch < n.epoch || !n.IsPeerInGroup(g, p) {
+		if s.SendEpoch < n.epoch.Current() || !n.IsPeerInGroup(g, p) {
 			return s
 		}
 
@@ -259,7 +260,7 @@ func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
 
 func (n Node) updateSendEpoch(s state) state {
 	s.SendCount += 1
-	s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
+	s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch.Current())
 	return s
 }
 

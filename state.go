@@ -2,7 +2,7 @@ package mvds
 
 type state struct {
 	SendCount   uint64
-	SendEpoch   int64
+	SendEpoch   uint64
 }
 
 type syncState interface {

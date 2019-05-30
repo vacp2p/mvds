@@ -147,8 +147,8 @@ func chat(group mvds.GroupID, nodes ...*mvds.Node) {
 	}
 }
 
-func Calc(count uint64, epoch int64) int64 {
-	return epoch + int64(count*2)
+func Calc(count uint64, epoch uint64) uint64 {
+	return epoch + (count*2)
 }
 
 func peerId() mvds.PeerId {
