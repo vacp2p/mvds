@@ -160,7 +160,9 @@ func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
 	}
 
 	if payload.Offer != nil {
-		n.payloads.AddRequests(group, sender, n.onOffer(group, sender, *payload.Offer)...)
+		requests, acks := n.onOffer(group, sender, *payload.Offer)
+		n.payloads.AddAcks(group, sender, acks...)
+		n.payloads.AddRequests(group, sender, requests...)
 	}
 
 	if payload.Messages != nil {
@@ -168,23 +170,24 @@ func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
 	}
 }
 
-func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) [][]byte {
-	r := make([][]byte, 0)
+func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) ([][]byte, [][]byte) {
+	requests := make([][]byte, 0)
+	acks := make([][]byte, 0)
 
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
 		log.Printf("[%x] OFFER (%x -> %x): %x received.\n", group[:4], sender.ToBytes()[:4], n.ID.ToBytes()[:4], id[:4])
 
-		// @todo maybe ack?
 		if n.store.Has(id) {
+			acks = append(acks, raw)
 			continue
 		}
 
-		r = append(r, raw)
+		requests = append(requests, raw)
 		log.Printf("[%x] sending REQUEST (%x -> %x): %x\n", group[:4], n.ID.ToBytes()[:4], sender.ToBytes()[:4], id[:4])
 	}
 
-	return r
+	return requests, acks
 }
 
 func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
