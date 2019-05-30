@@ -159,14 +159,14 @@ func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
 		n.payloads.AddMessages(group, sender, n.onRequest(group, sender, *payload.Request)...)
 	}
 
+	if payload.Messages != nil {
+		n.payloads.AddAcks(group, sender, n.onMessages(group, sender, payload.Messages)...)
+	}
+
 	if payload.Offer != nil {
 		requests, acks := n.onOffer(group, sender, *payload.Offer)
 		n.payloads.AddAcks(group, sender, acks...)
 		n.payloads.AddRequests(group, sender, requests...)
-	}
-
-	if payload.Messages != nil {
-		n.payloads.AddAcks(group, sender, n.onMessages(group, sender, payload.Messages)...)
 	}
 }
 
