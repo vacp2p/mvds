@@ -16,11 +16,11 @@ import (
 )
 
 var (
-	offline int
-	nodeCount int
+	offline       int
+	nodeCount     int
 	communicating int
-	sharing int
-	interval int64
+	sharing       int
+	interval      int64
 )
 
 type Transport struct {
@@ -31,7 +31,7 @@ type Transport struct {
 }
 
 func (t *Transport) Watch() mvds.Packet {
-	return <- t.in
+	return <-t.in
 }
 
 func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
@@ -69,7 +69,7 @@ func main() {
 		in := make(chan mvds.Packet)
 
 		transport := &Transport{
-			in: in,
+			in:  in,
 			out: make(map[mvds.PeerId]chan<- mvds.Packet),
 		}
 
@@ -105,7 +105,7 @@ func main() {
 func selectPeers(nodeCount int, currentNode int, sharing int) []int {
 	peers := make([]int, 0)
 
-	OUTER:
+OUTER:
 	for {
 		if len(peers) == sharing {
 			break
