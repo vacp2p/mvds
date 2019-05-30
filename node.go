@@ -79,16 +79,16 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 	id := m.ID()
 
 	go func () {
-		for g, peers := range n.peers {
-			for _, p := range peers {
-				if !n.IsPeerInGroup(group, p) {
-					continue
-				}
+		peers, ok := n.peers[group]
+		if !ok {
+			log.Printf("sending to unknown group %x\n", group[:4])
+			return
+		}
 
-				s := state{}
-				s.SendEpoch = n.epoch + 1
-				n.syncState.Set(g, id, p, s)
-			}
+		for _, p := range peers {
+			s := state{}
+			s.SendEpoch = n.epoch + 1
+			n.syncState.Set(group, id, p, s)
 		}
 	}()
 
