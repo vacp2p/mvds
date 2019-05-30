@@ -83,7 +83,7 @@ func main() {
 	// @todo maybe dms?
 
 	for i, n := range nodes {
-		peers := selectPeers(nodes, i, sharing)
+		peers := selectPeers(len(nodes), i, sharing)
 		for _, p := range peers {
 			peer := nodes[p].ID
 
@@ -102,23 +102,24 @@ func main() {
 	chat(group, nodes[:communicating-1]...)
 }
 
-func selectPeers(nodes []*mvds.Node, currentNode int, sharing int) []int {
+func selectPeers(nodeCount int, currentNode int, sharing int) []int {
 	peers := make([]int, 0)
 
+	OUTER:
 	for {
 		if len(peers) == sharing {
 			break
 		}
 
 		math.Seed(time.Now().UnixNano())
-		i := math.Intn(len(nodes))
+		i := math.Intn(nodeCount)
 		if i == currentNode {
 			continue
 		}
 
 		for _, p := range peers {
 			if i == p {
-				continue
+				continue OUTER
 			}
 		}
 
