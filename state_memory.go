@@ -3,7 +3,7 @@ package mvds
 import "sync"
 
 type memorySyncState struct {
-	sync.Mutex
+	sync.RWMutex
 
 	state map[GroupID]map[MessageID]map[PeerId]state
 }
@@ -15,8 +15,8 @@ func newSyncState() *memorySyncState {
 }
 
 func (s memorySyncState) Get(group GroupID, id MessageID, sender PeerId) state {
-	s.Lock()
-	defer s.Unlock()
+	s.RLock()
+	defer s.RUnlock()
 
 	state, _ := s.state[group][id][sender]
 	return state
