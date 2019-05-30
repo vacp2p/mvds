@@ -72,16 +72,16 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 		Body:      data,
 	}
 
-	err := n.store.Add(m)
-	if err != nil {
-		return MessageID{}, err
-	}
-
 	id := m.ID()
 
 	peers, ok := n.peers[group]
 	if !ok {
 		return MessageID{}, fmt.Errorf("trying to send to unknown group %x", group[:4])
+	}
+
+	err := n.store.Add(m)
+	if err != nil {
+		return MessageID{}, err
 	}
 
 	go func () {
