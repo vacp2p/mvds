@@ -3,6 +3,7 @@ package mvds
 // @todo this is a very rough implementation that needs cleanup
 
 import (
+	"fmt"
 	"log"
 	"sync/atomic"
 	"time"
@@ -71,24 +72,27 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 		Body:      data,
 	}
 
+	id := m.ID()
+
+	peers, ok := n.peers[group]
+	if !ok {
+		return MessageID{}, fmt.Errorf("trying to send to unknown group %x", group[:4])
+	}
+
 	err := n.store.Add(m)
 	if err != nil {
 		return MessageID{}, err
 	}
 
-	id := m.ID()
-
 	go func () {
-		for g, peers := range n.peers {
-			for _, p := range peers {
-				if !n.IsPeerInGroup(group, p) {
-					continue
-				}
-
-				s := state{}
-				s.SendEpoch = n.epoch + 1
-				n.syncState.Set(g, id, p, s)
+		for _, p := range peers {
+			if !n.IsPeerInGroup(group, p) {
+				continue
 			}
+
+			s := state{}
+			s.SendEpoch = n.epoch + 1
+			n.syncState.Set(group, id, p, s)
 		}
 	}()
 
