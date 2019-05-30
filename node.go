@@ -86,6 +86,10 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 		}
 
 		for _, p := range peers {
+			if !n.IsPeerInGroup(group, p) {
+				continue
+			}
+
 			s := state{}
 			s.SendEpoch = n.epoch + 1
 			n.syncState.Set(group, id, p, s)
