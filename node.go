@@ -139,15 +139,13 @@ func (n *Node) sendMessages() {
 		return n.updateSendEpoch(s)
 	})
 
-	n.payloads.Map(func(id GroupID, peer PeerId, payload Payload) {
+	n.payloads.MapAndClear(func(id GroupID, peer PeerId, payload Payload) {
 		err := n.transport.Send(id, n.ID, peer, payload)
 		if err != nil {
 			log.Printf("error sending message: %s", err.Error())
 			//	@todo
 		}
 	})
-
-	n.payloads.RemoveAll()
 }
 
 func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {

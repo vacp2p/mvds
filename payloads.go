@@ -66,7 +66,7 @@ func (p *payloads) AddMessages(group GroupID, peer PeerId, messages ...*Message)
 	p.set(group, peer, payload)
 }
 
-func (p *payloads) Map(f func(GroupID, PeerId, Payload)) {
+func (p *payloads) MapAndClear(f func(GroupID, PeerId, Payload)) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -75,13 +75,6 @@ func (p *payloads) Map(f func(GroupID, PeerId, Payload)) {
 			f(g, peer, payload)
 		}
 	}
-
-	p.payloads = make(map[GroupID]map[PeerId]Payload)
-}
-
-func (p *payloads) RemoveAll() {
-	p.Lock()
-	defer p.Unlock()
 
 	p.payloads = make(map[GroupID]map[PeerId]Payload)
 }
