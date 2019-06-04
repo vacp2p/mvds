@@ -14,7 +14,7 @@ func newSyncState() *memorySyncState {
 	}
 }
 
-func (s memorySyncState) Get(group GroupID, id MessageID, sender PeerId) state {
+func (s *memorySyncState) Get(group GroupID, id MessageID, sender PeerId) state {
 	s.Lock()
 	defer s.Unlock()
 
