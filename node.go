@@ -193,6 +193,7 @@ func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
 		log.Printf("[%x] REQUEST (%x -> %x): %x received.\n", group[:4], sender.ToBytes()[:4], n.ID.ToBytes()[:4], id[:4])
 
 		if !n.IsPeerInGroup(group, sender) {
+			log.Printf("[%x] peer %x is not in group", group[:4], sender.ToBytes()[:4])
 			continue
 		}
 
