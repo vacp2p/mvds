@@ -100,9 +100,12 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 			}
 
 			// @todo do we wanna do offer it any way or only if its interactive?
-			s := state{}
-			s.SendEpoch = n.epoch + 1
-			n.syncState.Set(group, id, p, s)
+			if n.mode == INTERACTIVE {
+				s := state{}
+				s.SendEpoch = n.epoch + 1
+				n.syncState.Set(group, id, p, s)
+				return
+			}
 
 			if n.mode == BATCH {
 				n.payloads.AddMessages(group, p, &m)
