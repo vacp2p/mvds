@@ -21,6 +21,7 @@ var (
 	communicating int
 	sharing       int
 	interval      int64
+	interactive   int
 )
 
 type Transport struct {
@@ -55,6 +56,7 @@ func init() {
 	flag.IntVar(&communicating, "communicating", 2, "amount of nodes sending messages")
 	flag.IntVar(&sharing, "sharing", 2, "amount of nodes each node shares with")
 	flag.Int64Var(&interval, "interval", 5, "seconds between messages")
+	flag.IntVar(&interactive, "interactive", 3, "amount of nodes to use INTERACTIVE mode, the rest will be BATCH") // @todo should probably just be how many nodes are interactive
 	flag.Parse()
 }
 
@@ -75,7 +77,16 @@ func main() {
 
 		input = append(input, in)
 		transports = append(transports, transport)
-		nodes = append(nodes, createNode(transport, peerId()))
+
+		mode := mvds.INTERACTIVE
+		if i+1 >= interactive {
+			mode = mvds.BATCH
+		}
+
+		nodes = append(
+			nodes,
+			createNode(transport, peerId(), mode),
+		)
 	}
 
 	group := groupId()
@@ -129,9 +140,9 @@ OUTER:
 	return peers
 }
 
-func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
+func createNode(transport *Transport, id mvds.PeerId, mode mvds.Mode) *mvds.Node {
 	ds := mvds.NewDummyStore()
-	return mvds.NewNode(&ds, transport, Calc, id)
+	return mvds.NewNode(&ds, transport, Calc, id, mode)
 }
 
 func chat(group mvds.GroupID, nodes ...*mvds.Node) {
