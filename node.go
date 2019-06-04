@@ -3,9 +3,9 @@ package mvds
 // @todo this is a very rough implementation that needs cleanup
 
 import (
+	"bytes"
 	"fmt"
 	"log"
-	"reflect"
 	"sync/atomic"
 	"time"
 )
@@ -122,7 +122,7 @@ func (n *Node) Share(group GroupID, id PeerId) {
 
 func (n Node) IsPeerInGroup(g GroupID, p PeerId) bool {
 	for _, peer := range n.sharing[g] {
-		if reflect.DeepEqual(peer, p) {
+		if bytes.Equal(peer[:], p[:]) {
 			return true
 		}
 	}
