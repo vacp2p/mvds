@@ -91,7 +91,7 @@ func main() {
 			n.AddPeer(group, peer)
 			n.Share(group, peer)
 
-			log.Printf("%x sharing with %x", n.ID.ToBytes()[:4], peer.ToBytes()[:4])
+			log.Printf("%x sharing with %x", n.ID[:4], peer[:4])
 		}
 	}
 
@@ -153,7 +153,7 @@ func Calc(count uint64, epoch int64) int64 {
 
 func peerId() mvds.PeerId {
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	return mvds.PeerId(key.PublicKey)
+	return *mvds.PublicKeyToPeerID(key.PublicKey)
 }
 
 func groupId() mvds.GroupID {

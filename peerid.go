@@ -7,12 +7,14 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-type PeerId ecdsa.PublicKey
+type PeerId [64]byte
 
-func (p PeerId) ToBytes() []byte {
-	if p.X == nil || p.Y == nil {
+func PublicKeyToPeerID(k ecdsa.PublicKey) *PeerId {
+	if k.X == nil || k.Y == nil {
 		return nil
 	}
 
-	return elliptic.Marshal(crypto.S256(), p.X, p.Y)
+	p := &PeerId{}
+	copy(p[:], elliptic.Marshal(crypto.S256(), k.X, k.Y))
+	return p
 }
