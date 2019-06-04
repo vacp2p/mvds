@@ -99,7 +99,6 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 				continue
 			}
 
-			// @todo do we wanna do offer it any way or only if its interactive?
 			if n.mode == INTERACTIVE {
 				s := state{}
 				s.SendEpoch = n.epoch + 1
