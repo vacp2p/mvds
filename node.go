@@ -43,7 +43,7 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 	}
 }
 
-// Run listens for new messages received by the node and sends out those required every tick.
+// Run listens for new messages received by the node and sends out those required every epoch.
 func (n *Node) Run() {
 
 	// this will be completely legitimate with new payload handling
