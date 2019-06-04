@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+type Mode string
+
+const (
+	INTERACTIVE Mode = "interactive"
+	BATCH       Mode = "batch"
+)
+
 type calculateNextEpoch func(count uint64, epoch int64) int64
 
 type Node struct {
@@ -26,9 +33,10 @@ type Node struct {
 	ID PeerId
 
 	epoch int64
+	mode  Mode
 }
 
-func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerId) *Node {
+func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerId, mode Mode) *Node {
 	return &Node{
 		store:     ms,
 		transport: st,
@@ -39,6 +47,7 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 		nextEpoch: nextEpoch,
 		ID:        id,
 		epoch:     0,
+		mode:      mode,
 	}
 }
 
@@ -84,15 +93,20 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 		return MessageID{}, err
 	}
 
-	go func () {
+	go func() {
 		for _, p := range peers {
 			if !n.IsPeerInGroup(group, p) {
 				continue
 			}
 
+			// @todo do we wanna do offer it any way or only if its interactive?
 			s := state{}
 			s.SendEpoch = n.epoch + 1
 			n.syncState.Set(group, id, p, s)
+
+			if n.mode == BATCH {
+				n.payloads.AddMessages(group, p, &m)
+			}
 		}
 	}()
 
