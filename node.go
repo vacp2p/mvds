@@ -106,6 +106,7 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 
 			if n.mode == BATCH {
 				n.payloads.AddMessages(group, p, &m)
+				log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID.ToBytes()[:4], p.ToBytes()[:4], id[:4])
 			}
 		}
 	}()

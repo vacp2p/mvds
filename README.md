@@ -14,6 +14,8 @@ In order to run a very naive simulation, use the simulation command. The simulat
 Usage of simulation/simulation.go:
   -communicating int
     	amount of nodes sending messages (default 2)
+  -interactive int
+    	amount of nodes to use INTERACTIVE mode, the rest will be BATCH (default 3)
   -interval int
     	seconds between messages (default 5)
   -nodes int
