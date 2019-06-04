@@ -11,6 +11,12 @@ type payloads struct {
 }
 // @todo check in all the functions below that we aren't duplicating stuff
 
+func newPayloads() payloads {
+	return payloads{
+		payloads: make(map[GroupID]map[PeerId]Payload),
+	}
+}
+
 func (p *payloads) AddOffers(group GroupID, peer PeerId, offers ...[]byte) {
 	p.Lock()
 	defer p.Unlock()

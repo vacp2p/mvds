@@ -35,7 +35,7 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 		syncState: newSyncState(),
 		sharing:   make(map[GroupID][]PeerId),
 		peers:     make(map[GroupID][]PeerId),
-		payloads:  payloads{payloads: make(map[GroupID]map[PeerId]Payload)},
+		payloads:  newPayloads(),
 		nextEpoch: nextEpoch,
 		ID:        id,
 		epoch:     0,
