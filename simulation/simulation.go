@@ -27,14 +27,14 @@ type Transport struct {
 	sync.Mutex
 
 	in  <-chan mvds.Packet
-	out map[mvds.PeerId]chan<- mvds.Packet
+	out map[mvds.PeerID]chan<- mvds.Packet
 }
 
 func (t *Transport) Watch() mvds.Packet {
 	return <-t.in
 }
 
-func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
+func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerID, peer mvds.PeerID, payload mvds.Payload) error {
 	math.Seed(time.Now().UnixNano())
 	if math.Intn(100) < offline {
 		return nil
@@ -70,12 +70,12 @@ func main() {
 
 		transport := &Transport{
 			in:  in,
-			out: make(map[mvds.PeerId]chan<- mvds.Packet),
+			out: make(map[mvds.PeerID]chan<- mvds.Packet),
 		}
 
 		input = append(input, in)
 		transports = append(transports, transport)
-		nodes = append(nodes, createNode(transport, peerId()))
+		nodes = append(nodes, createNode(transport, PeerID()))
 	}
 
 	group := groupId()
@@ -129,7 +129,7 @@ OUTER:
 	return peers
 }
 
-func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
+func createNode(transport *Transport, id mvds.PeerID) *mvds.Node {
 	ds := mvds.NewDummyStore()
 	return mvds.NewNode(&ds, transport, Calc, id)
 }
@@ -151,9 +151,9 @@ func Calc(count uint64, epoch int64) int64 {
 	return epoch + int64(count*2)
 }
 
-func peerId() mvds.PeerId {
+func PeerID() mvds.PeerID {
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	return *mvds.PublicKeyToPeerID(key.PublicKey)
+	return mvds.PublicKeyToPeerID(key.PublicKey)
 }
 
 func groupId() mvds.GroupID {
