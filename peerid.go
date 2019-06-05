@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-type PeerId [64]byte
+type PeerID [64]byte
 
 func PublicKeyToPeerID(k ecdsa.PublicKey) *PeerId {
 	if k.X == nil || k.Y == nil {
