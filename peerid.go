@@ -14,7 +14,7 @@ func PublicKeyToPeerID(k ecdsa.PublicKey) *PeerId {
 		return nil
 	}
 
-	p := &PeerId{}
+	var p PeerID
 	copy(p[:], elliptic.Marshal(crypto.S256(), k.X, k.Y))
 	return p
 }
