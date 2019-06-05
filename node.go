@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+type Mode string
+
+const (
+	INTERACTIVE Mode = "interactive"
+	BATCH       Mode = "batch"
+)
+
 type calculateNextEpoch func(count uint64, epoch int64) int64
 
 type Node struct {
@@ -27,9 +34,11 @@ type Node struct {
 	ID PeerID
 
 	epoch int64
+	mode  Mode
 }
 
-func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerID) *Node {
+
+func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerID, mode Mode) *Node {
 	return &Node{
 		store:     ms,
 		transport: st,
@@ -40,10 +49,11 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 		nextEpoch: nextEpoch,
 		ID:        id,
 		epoch:     0,
+		mode:      mode,
 	}
 }
 
-// Run listens for new messages received by the node and sends out those required every tick.
+// Run listens for new messages received by the node and sends out those required every epoch.
 func (n *Node) Run() {
 
 	// this will be completely legitimate with new payload handling
@@ -85,15 +95,23 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 		return MessageID{}, err
 	}
 
-	go func () {
+	go func() {
 		for _, p := range peers {
 			if !n.IsPeerInGroup(group, p) {
 				continue
 			}
 
-			s := state{}
-			s.SendEpoch = n.epoch + 1
-			n.syncState.Set(group, id, p, s)
+			if n.mode == INTERACTIVE {
+				s := state{}
+				s.SendEpoch = n.epoch + 1
+				n.syncState.Set(group, id, p, s)
+				return
+			}
+
+			if n.mode == BATCH {
+				n.payloads.AddMessages(group, p, &m)
+				log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID[:4], p[:4], id[:4])
+			}
 		}
 	}()
 
