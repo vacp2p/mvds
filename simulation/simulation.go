@@ -28,14 +28,14 @@ type Transport struct {
 	sync.Mutex
 
 	in  <-chan mvds.Packet
-	out map[mvds.PeerId]chan<- mvds.Packet
+	out map[mvds.PeerID]chan<- mvds.Packet
 }
 
 func (t *Transport) Watch() mvds.Packet {
 	return <-t.in
 }
 
-func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
+func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerID, peer mvds.PeerID, payload mvds.Payload) error {
 	math.Seed(time.Now().UnixNano())
 	if math.Intn(100) < offline {
 		return nil
@@ -72,7 +72,7 @@ func main() {
 
 		transport := &Transport{
 			in:  in,
-			out: make(map[mvds.PeerId]chan<- mvds.Packet),
+			out: make(map[mvds.PeerID]chan<- mvds.Packet),
 		}
 
 		input = append(input, in)
@@ -85,7 +85,7 @@ func main() {
 
 		nodes = append(
 			nodes,
-			createNode(transport, peerId(), mode),
+			createNode(transport, peerID(), mode),
 		)
 	}
 
@@ -102,7 +102,7 @@ func main() {
 			n.AddPeer(group, peer)
 			n.Share(group, peer)
 
-			log.Printf("%x sharing with %x", n.ID.ToBytes()[:4], peer.ToBytes()[:4])
+			log.Printf("%x sharing with %x", n.ID[:4], peer[:4])
 		}
 	}
 
@@ -140,7 +140,7 @@ OUTER:
 	return peers
 }
 
-func createNode(transport *Transport, id mvds.PeerId, mode mvds.Mode) *mvds.Node {
+func createNode(transport *Transport, id mvds.PeerID, mode mvds.Mode) *mvds.Node {
 	ds := mvds.NewDummyStore()
 	return mvds.NewNode(&ds, transport, Calc, id, mode)
 }
@@ -162,9 +162,9 @@ func Calc(count uint64, epoch int64) int64 {
 	return epoch + int64(count*2)
 }
 
-func peerId() mvds.PeerId {
+func peerID() mvds.PeerID {
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	return mvds.PeerId(key.PublicKey)
+	return mvds.PublicKeyToPeerID(key.PublicKey)
 }
 
 func groupId() mvds.GroupID {

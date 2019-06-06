@@ -3,9 +3,9 @@ package mvds
 // @todo this is a very rough implementation that needs cleanup
 
 import (
+	"bytes"
 	"fmt"
 	"log"
-	"reflect"
 	"sync/atomic"
 	"time"
 )
@@ -24,26 +24,27 @@ type Node struct {
 	transport Transport
 
 	syncState syncState
-	sharing   map[GroupID][]PeerId
-	peers     map[GroupID][]PeerId
+	sharing   map[GroupID][]PeerID
+	peers     map[GroupID][]PeerID
 
 	payloads payloads
 
 	nextEpoch calculateNextEpoch
 
-	ID PeerId
+	ID PeerID
 
 	epoch int64
 	mode  Mode
 }
 
-func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerId, mode Mode) *Node {
+
+func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerID, mode Mode) *Node {
 	return &Node{
 		store:     ms,
 		transport: st,
 		syncState: newSyncState(),
-		sharing:   make(map[GroupID][]PeerId),
-		peers:     make(map[GroupID][]PeerId),
+		sharing:   make(map[GroupID][]PeerID),
+		peers:     make(map[GroupID][]PeerID),
 		payloads:  newPayloads(),
 		nextEpoch: nextEpoch,
 		ID:        id,
@@ -65,7 +66,7 @@ func (n *Node) Run() {
 
 	go func() {
 		for {
-			log.Printf("Node: %x Epoch: %d", n.ID.ToBytes()[:4], n.epoch)
+			log.Printf("Node: %x Epoch: %d", n.ID[:4], n.epoch)
 			time.Sleep(1 * time.Second)
 
 			n.sendMessages()
@@ -109,37 +110,37 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 
 			if n.mode == BATCH {
 				n.payloads.AddMessages(group, p, &m)
-				log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID.ToBytes()[:4], p.ToBytes()[:4], id[:4])
+				log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID[:4], p[:4], id[:4])
 			}
 		}
 	}()
 
-	log.Printf("[%x] node %x sending %x\n", group[:4], n.ID.ToBytes()[:4], id[:4])
+	log.Printf("[%x] node %x sending %x\n", group[:4], n.ID[:4], id[:4])
 	// @todo think about a way to insta trigger send messages when send was selected, we don't wanna wait for ticks here
 
 	return id, nil
 }
 
 // AddPeer adds a peer to a specific group making it a recipient of messages
-func (n *Node) AddPeer(group GroupID, id PeerId) {
+func (n *Node) AddPeer(group GroupID, id PeerID) {
 	if _, ok := n.peers[group]; !ok {
-		n.peers[group] = make([]PeerId, 0)
+		n.peers[group] = make([]PeerID, 0)
 	}
 
 	n.peers[group] = append(n.peers[group], id)
 }
 
-func (n *Node) Share(group GroupID, id PeerId) {
+func (n *Node) Share(group GroupID, id PeerID) {
 	if _, ok := n.sharing[group]; !ok {
-		n.sharing[group] = make([]PeerId, 0)
+		n.sharing[group] = make([]PeerID, 0)
 	}
 
 	n.sharing[group] = append(n.sharing[group], id)
 }
 
-func (n Node) IsPeerInGroup(g GroupID, p PeerId) bool {
+func (n Node) IsPeerInGroup(g GroupID, p PeerID) bool {
 	for _, peer := range n.sharing[g] {
-		if reflect.DeepEqual(peer.ToBytes(), p.ToBytes()) {
+		if bytes.Equal(peer[:], p[:]) {
 			return true
 		}
 	}
@@ -148,7 +149,7 @@ func (n Node) IsPeerInGroup(g GroupID, p PeerId) bool {
 }
 
 func (n *Node) sendMessages() {
-	n.syncState.Map(func(g GroupID, m MessageID, p PeerId, s state) state {
+	n.syncState.Map(func(g GroupID, m MessageID, p PeerID, s state) state {
 		if s.SendEpoch < n.epoch || !n.IsPeerInGroup(g, p) {
 			return s
 		}
@@ -157,7 +158,7 @@ func (n *Node) sendMessages() {
 		return n.updateSendEpoch(s)
 	})
 
-	n.payloads.MapAndClear(func(id GroupID, peer PeerId, payload Payload) {
+	n.payloads.MapAndClear(func(id GroupID, peer PeerID, payload Payload) {
 		err := n.transport.Send(id, n.ID, peer, payload)
 		if err != nil {
 			log.Printf("error sending message: %s", err.Error())
@@ -166,7 +167,7 @@ func (n *Node) sendMessages() {
 	})
 }
 
-func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
+func (n *Node) onPayload(group GroupID, sender PeerID, payload Payload) {
 	if payload.Ack != nil {
 		n.onAck(group, sender, *payload.Ack)
 	}
@@ -184,12 +185,12 @@ func (n *Node) onPayload(group GroupID, sender PeerId, payload Payload) {
 	}
 }
 
-func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) [][]byte {
+func (n *Node) onOffer(group GroupID, sender PeerID, msg Offer) [][]byte {
 	r := make([][]byte, 0)
 
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
-		log.Printf("[%x] OFFER (%x -> %x): %x received.\n", group[:4], sender.ToBytes()[:4], n.ID.ToBytes()[:4], id[:4])
+		log.Printf("[%x] OFFER (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
 		// @todo maybe ack?
 		if n.store.Has(id) {
@@ -197,21 +198,21 @@ func (n *Node) onOffer(group GroupID, sender PeerId, msg Offer) [][]byte {
 		}
 
 		r = append(r, raw)
-		log.Printf("[%x] sending REQUEST (%x -> %x): %x\n", group[:4], n.ID.ToBytes()[:4], sender.ToBytes()[:4], id[:4])
+		log.Printf("[%x] sending REQUEST (%x -> %x): %x\n", group[:4], n.ID[:4], sender[:4], id[:4])
 	}
 
 	return r
 }
 
-func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
+func (n *Node) onRequest(group GroupID, sender PeerID, msg Request) []*Message {
 	m := make([]*Message, 0)
 
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
-		log.Printf("[%x] REQUEST (%x -> %x): %x received.\n", group[:4], sender.ToBytes()[:4], n.ID.ToBytes()[:4], id[:4])
+		log.Printf("[%x] REQUEST (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
 		if !n.IsPeerInGroup(group, sender) {
-			log.Printf("[%x] peer %x is not in group", group[:4], sender.ToBytes()[:4])
+			log.Printf("[%x] peer %x is not in group", group[:4], sender[:4])
 			continue
 		}
 
@@ -225,23 +226,23 @@ func (n *Node) onRequest(group GroupID, sender PeerId, msg Request) []*Message {
 
 		m = append(m, &message)
 
-		log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID.ToBytes()[:4], sender.ToBytes()[:4], id[:4])
+		log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID[:4], sender[:4], id[:4])
 	}
 
 	return m
 }
 
-func (n *Node) onAck(group GroupID, sender PeerId, msg Ack) {
+func (n *Node) onAck(group GroupID, sender PeerID, msg Ack) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
 
 		n.syncState.Remove(group, id, sender)
 
-		log.Printf("[%x] ACK (%x -> %x): %x received.\n", group[:4], sender.ToBytes()[:4], n.ID.ToBytes()[:4], id[:4])
+		log.Printf("[%x] ACK (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 	}
 }
 
-func (n *Node) onMessages(group GroupID, sender PeerId, messages []*Message) [][]byte {
+func (n *Node) onMessages(group GroupID, sender PeerID, messages []*Message) [][]byte {
 	a := make([][]byte, 0)
 
 	for _, m := range messages {
@@ -252,16 +253,16 @@ func (n *Node) onMessages(group GroupID, sender PeerId, messages []*Message) [][
 		}
 
 		id := m.ID()
-		log.Printf("[%x] sending ACK (%x -> %x): %x\n", group[:4], n.ID.ToBytes()[:4], sender.ToBytes()[:4], id[:4])
+		log.Printf("[%x] sending ACK (%x -> %x): %x\n", group[:4], n.ID[:4], sender[:4], id[:4])
 		a = append(a, id[:])
 	}
 
 	return a
 }
 
-func (n *Node) onMessage(group GroupID, sender PeerId, msg Message) error {
+func (n *Node) onMessage(group GroupID, sender PeerID, msg Message) error {
 	id := msg.ID()
-	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender.ToBytes()[:4], n.ID.ToBytes()[:4], id[:4])
+	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
 	// @todo share message with those around us
 

@@ -2,17 +2,14 @@ package mvds
 
 import (
 	"crypto/ecdsa"
-	"crypto/elliptic"
 
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-type PeerId ecdsa.PublicKey
+type PeerID [64]byte
 
-func (p PeerId) ToBytes() []byte {
-	if p.X == nil || p.Y == nil {
-		return nil
-	}
-
-	return elliptic.Marshal(crypto.S256(), p.X, p.Y)
+func PublicKeyToPeerID(k ecdsa.PublicKey) PeerID {
+	var p PeerID
+	copy(p[:], crypto.FromECDSAPub(&k))
+	return p
 }
