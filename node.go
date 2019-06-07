@@ -38,7 +38,7 @@ type Node struct {
 }
 
 
-func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerID, mode Mode) *Node {
+func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, currentEpoch int64, id PeerID, mode Mode) *Node {
 	return &Node{
 		store:     ms,
 		transport: st,
@@ -48,7 +48,7 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 		payloads:  newPayloads(),
 		nextEpoch: nextEpoch,
 		ID:        id,
-		epoch:     0,
+		epoch:     currentEpoch,
 		mode:      mode,
 	}
 }
