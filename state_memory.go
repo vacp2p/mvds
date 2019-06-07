@@ -1,6 +1,8 @@
 package mvds
 
-import "sync"
+import (
+	"sync"
+)
 
 type memorySyncState struct {
 	sync.Mutex

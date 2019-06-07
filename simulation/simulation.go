@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/status-im/mvds"
+	"github.com/status-im/mvds/protobuf"
 )
 
 var (
@@ -35,7 +36,7 @@ func (t *Transport) Watch() mvds.Packet {
 	return <-t.in
 }
 
-func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerID, peer mvds.PeerID, payload mvds.Payload) error {
+func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerID, peer mvds.PeerID, payload protobuf.Payload) error {
 	math.Seed(time.Now().UnixNano())
 	if math.Intn(100) < offline {
 		return nil

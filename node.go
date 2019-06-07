@@ -8,6 +8,8 @@ import (
 	"log"
 	"sync/atomic"
 	"time"
+
+	"github.com/status-im/mvds/protobuf"
 )
 
 type Mode string
@@ -77,13 +79,13 @@ func (n *Node) Run() {
 
 // AppendMessage sends a message to a given group.
 func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
-	m := Message{
+	m := protobuf.Message{
 		GroupId:   group[:],
 		Timestamp: time.Now().Unix(),
 		Body:      data,
 	}
 
-	id := m.ID()
+	id := ID(m)
 
 	peers, ok := n.peers[group]
 	if !ok {
@@ -158,7 +160,7 @@ func (n *Node) sendMessages() {
 		return n.updateSendEpoch(s)
 	})
 
-	n.payloads.MapAndClear(func(id GroupID, peer PeerID, payload Payload) {
+	n.payloads.MapAndClear(func(id GroupID, peer PeerID, payload protobuf.Payload) {
 		err := n.transport.Send(id, n.ID, peer, payload)
 		if err != nil {
 			log.Printf("error sending message: %s", err.Error())
@@ -167,7 +169,7 @@ func (n *Node) sendMessages() {
 	})
 }
 
-func (n *Node) onPayload(group GroupID, sender PeerID, payload Payload) {
+func (n *Node) onPayload(group GroupID, sender PeerID, payload protobuf.Payload) {
 	if payload.Ack != nil {
 		n.onAck(group, sender, *payload.Ack)
 	}
@@ -185,7 +187,7 @@ func (n *Node) onPayload(group GroupID, sender PeerID, payload Payload) {
 	}
 }
 
-func (n *Node) onOffer(group GroupID, sender PeerID, msg Offer) [][]byte {
+func (n *Node) onOffer(group GroupID, sender PeerID, msg protobuf.Offer) [][]byte {
 	r := make([][]byte, 0)
 
 	for _, raw := range msg.Id {
@@ -204,8 +206,8 @@ func (n *Node) onOffer(group GroupID, sender PeerID, msg Offer) [][]byte {
 	return r
 }
 
-func (n *Node) onRequest(group GroupID, sender PeerID, msg Request) []*Message {
-	m := make([]*Message, 0)
+func (n *Node) onRequest(group GroupID, sender PeerID, msg protobuf.Request) []*protobuf.Message {
+	m := make([]*protobuf.Message, 0)
 
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
@@ -232,7 +234,7 @@ func (n *Node) onRequest(group GroupID, sender PeerID, msg Request) []*Message {
 	return m
 }
 
-func (n *Node) onAck(group GroupID, sender PeerID, msg Ack) {
+func (n *Node) onAck(group GroupID, sender PeerID, msg protobuf.Ack) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
 
@@ -242,7 +244,7 @@ func (n *Node) onAck(group GroupID, sender PeerID, msg Ack) {
 	}
 }
 
-func (n *Node) onMessages(group GroupID, sender PeerID, messages []*Message) [][]byte {
+func (n *Node) onMessages(group GroupID, sender PeerID, messages []*protobuf.Message) [][]byte {
 	a := make([][]byte, 0)
 
 	for _, m := range messages {
@@ -252,7 +254,7 @@ func (n *Node) onMessages(group GroupID, sender PeerID, messages []*Message) [][
 			continue
 		}
 
-		id := m.ID()
+		id := ID(*m)
 		log.Printf("[%x] sending ACK (%x -> %x): %x\n", group[:4], n.ID[:4], sender[:4], id[:4])
 		a = append(a, id[:])
 	}
@@ -260,8 +262,8 @@ func (n *Node) onMessages(group GroupID, sender PeerID, messages []*Message) [][
 	return a
 }
 
-func (n *Node) onMessage(group GroupID, sender PeerID, msg Message) error {
-	id := msg.ID()
+func (n *Node) onMessage(group GroupID, sender PeerID, msg protobuf.Message) error {
+	id := ID(msg)
 	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
 	// @todo share message with those around us
