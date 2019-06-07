@@ -23,7 +23,7 @@ type Node struct {
 	store     MessageStore
 	transport Transport
 
-	syncState syncState
+	syncState SyncState
 	sharing   map[GroupID][]PeerID
 	peers     map[GroupID][]PeerID
 
@@ -38,11 +38,11 @@ type Node struct {
 }
 
 
-func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerID, mode Mode) *Node {
+func NewNode(ms MessageStore, st Transport, ss SyncState, nextEpoch calculateNextEpoch, id PeerID, mode Mode) *Node {
 	return &Node{
 		store:     ms,
 		transport: st,
-		syncState: newSyncState(),
+		syncState: ss,
 		sharing:   make(map[GroupID][]PeerID),
 		peers:     make(map[GroupID][]PeerID),
 		payloads:  newPayloads(),
