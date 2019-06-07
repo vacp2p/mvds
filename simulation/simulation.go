@@ -159,10 +159,6 @@ func chat(group mvds.GroupID, nodes ...*mvds.Node) {
 }
 
 func Calc(count uint64, epoch int64) int64 {
-	if count % 20 == 0 {
-		return epoch + 1
-	}
-
 	return epoch + int64(count*2)
 }
 

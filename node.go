@@ -33,8 +33,9 @@ type Node struct {
 
 	ID PeerID
 
-	epoch int64
-	mode  Mode
+	epoch          int64
+	sendCountReset uint64
+	mode           Mode
 }
 
 
@@ -276,8 +277,13 @@ func (n *Node) onMessage(group GroupID, sender PeerID, msg Message) error {
 }
 
 func (n Node) updateSendEpoch(s state) state {
+	if s.SendCount == n.sendCountReset && n.sendCountReset != 0 {
+		s.SendCount = 0 // @todo maybe define what number it resets to?
+	}
+
 	s.SendCount += 1
 	s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
+
 	return s
 }
 
