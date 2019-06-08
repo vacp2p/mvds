@@ -4,6 +4,7 @@ package mvds
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"sync/atomic"
@@ -22,6 +23,9 @@ const (
 type calculateNextEpoch func(count uint64, epoch int64) int64
 
 type Node struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	store     MessageStore
 	transport Transport
 
@@ -39,9 +43,11 @@ type Node struct {
 	mode  Mode
 }
 
-
 func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerID, mode Mode) *Node {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Node{
+		ctx:       ctx,
+		cancel:    cancel,
 		store:     ms,
 		transport: st,
 		syncState: newSyncState(),
@@ -55,26 +61,41 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 	}
 }
 
-// Run listens for new messages received by the node and sends out those required every epoch.
-func (n *Node) Run() {
-
+// Start listens for new messages received by the node and sends out those required every epoch.
+func (n *Node) Start() {
 	// this will be completely legitimate with new payload handling
 	go func() {
 		for {
-			p := n.transport.Watch()
-			go n.onPayload(p.Group, p.Sender, p.Payload)
+			select {
+			case <- n.ctx.Done():
+				log.Print("Watch stopped")
+				return
+			default:
+				p := n.transport.Watch()
+				go n.onPayload(p.Group, p.Sender, p.Payload)
+			}
 		}
 	}()
 
 	go func() {
 		for {
-			log.Printf("Node: %x Epoch: %d", n.ID[:4], n.epoch)
-			time.Sleep(1 * time.Second)
+			select {
+			case <-n.ctx.Done():
+				log.Print("Epoch processing stopped")
+				return
+			default:
+				log.Printf("Node: %x Epoch: %d", n.ID[:4], n.epoch)
+				time.Sleep(1 * time.Second)
 
-			n.sendMessages()
-			atomic.AddInt64(&n.epoch, 1)
+				n.sendMessages()
+				atomic.AddInt64(&n.epoch, 1)
+			}
 		}
 	}()
+}
+
+func (n *Node) Stop() {
+	n.cancel()
 }
 
 // AppendMessage sends a message to a given group.

@@ -108,7 +108,7 @@ func main() {
 	}
 
 	for _, n := range nodes {
-		n.Run()
+		n.Start()
 	}
 
 	chat(group, nodes[:communicating-1]...)
