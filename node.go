@@ -63,11 +63,10 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 
 // Start listens for new messages received by the node and sends out those required every epoch.
 func (n *Node) Start() {
-	// this will be completely legitimate with new payload handling
 	go func() {
 		for {
 			select {
-			case <- n.ctx.Done():
+			case <-n.ctx.Done():
 				log.Print("Watch stopped")
 				return
 			default:
@@ -94,6 +93,7 @@ func (n *Node) Start() {
 	}()
 }
 
+// Stop message reading and epoch processing
 func (n *Node) Stop() {
 	n.cancel()
 }
