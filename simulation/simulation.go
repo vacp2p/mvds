@@ -38,6 +38,8 @@ func (t *Transport) Watch() mvds.Packet {
 
 func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerID, peer mvds.PeerID, payload protobuf.Payload) error {
 	math.Seed(time.Now().UnixNano())
+
+	// @todo we can do this better, we put node onlineness into a goroutine where we just stop the nodes for x seconds
 	if math.Intn(100) < offline {
 		return nil
 	}
