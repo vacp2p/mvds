@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/status-im/mvds"
+	"github.com/status-im/mvds/protobuf"
 )
 
 var (
@@ -21,20 +22,21 @@ var (
 	communicating int
 	sharing       int
 	interval      int64
+	interactive   int
 )
 
 type Transport struct {
 	sync.Mutex
 
 	in  <-chan mvds.Packet
-	out map[mvds.PeerId]chan<- mvds.Packet
+	out map[mvds.PeerID]chan<- mvds.Packet
 }
 
 func (t *Transport) Watch() mvds.Packet {
 	return <-t.in
 }
 
-func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerId, peer mvds.PeerId, payload mvds.Payload) error {
+func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerID, peer mvds.PeerID, payload protobuf.Payload) error {
 	math.Seed(time.Now().UnixNano())
 	if math.Intn(100) < offline {
 		return nil
@@ -55,6 +57,7 @@ func init() {
 	flag.IntVar(&communicating, "communicating", 2, "amount of nodes sending messages")
 	flag.IntVar(&sharing, "sharing", 2, "amount of nodes each node shares with")
 	flag.Int64Var(&interval, "interval", 5, "seconds between messages")
+	flag.IntVar(&interactive, "interactive", 3, "amount of nodes to use INTERACTIVE mode, the rest will be BATCH") // @todo should probably just be how many nodes are interactive
 	flag.Parse()
 }
 
@@ -70,12 +73,21 @@ func main() {
 
 		transport := &Transport{
 			in:  in,
-			out: make(map[mvds.PeerId]chan<- mvds.Packet),
+			out: make(map[mvds.PeerID]chan<- mvds.Packet),
 		}
 
 		input = append(input, in)
 		transports = append(transports, transport)
-		nodes = append(nodes, createNode(transport, peerId()))
+
+		mode := mvds.INTERACTIVE
+		if i+1 >= interactive {
+			mode = mvds.BATCH
+		}
+
+		nodes = append(
+			nodes,
+			createNode(transport, peerID(), mode),
+		)
 	}
 
 	group := groupId()
@@ -91,7 +103,7 @@ func main() {
 			n.AddPeer(group, peer)
 			n.Share(group, peer)
 
-			log.Printf("%x sharing with %x", n.ID.ToBytes()[:4], peer.ToBytes()[:4])
+			log.Printf("%x sharing with %x", n.ID[:4], peer[:4])
 		}
 	}
 
@@ -129,9 +141,9 @@ OUTER:
 	return peers
 }
 
-func createNode(transport *Transport, id mvds.PeerId) *mvds.Node {
+func createNode(transport *Transport, id mvds.PeerID, mode mvds.Mode) *mvds.Node {
 	ds := mvds.NewDummyStore()
-	return mvds.NewNode(&ds, transport, Calc, id)
+	return mvds.NewNode(&ds, transport, Calc, id, mode)
 }
 
 func chat(group mvds.GroupID, nodes ...*mvds.Node) {
@@ -151,9 +163,9 @@ func Calc(count uint64, epoch uint64) uint64 {
 	return epoch + (count*2)
 }
 
-func peerId() mvds.PeerId {
+func peerID() mvds.PeerID {
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	return mvds.PeerId(key.PublicKey)
+	return mvds.PublicKeyToPeerID(key.PublicKey)
 }
 
 func groupId() mvds.GroupID {

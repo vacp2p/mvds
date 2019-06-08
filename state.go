@@ -6,8 +6,8 @@ type state struct {
 }
 
 type syncState interface {
-	Get(group GroupID, id MessageID, sender PeerId) state
-	Set(group GroupID, id MessageID, sender PeerId, newState state)
-	Remove(group GroupID, id MessageID, sender PeerId)
-	Map(process func(g GroupID, m MessageID, p PeerId, s state) state)
+	Get(group GroupID, id MessageID, sender PeerID) state
+	Set(group GroupID, id MessageID, sender PeerID, newState state)
+	Remove(group GroupID, id MessageID, sender PeerID)
+	Map(process func(g GroupID, m MessageID, p PeerID, s state) state)
 }

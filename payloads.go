@@ -2,22 +2,30 @@ package mvds
 
 import (
 	"sync"
+
+	"github.com/status-im/mvds/protobuf"
 )
 
 type payloads struct {
 	sync.Mutex
 
-	payloads map[GroupID]map[PeerId]Payload
+	payloads map[GroupID]map[PeerID]protobuf.Payload
 }
 // @todo check in all the functions below that we aren't duplicating stuff
 
-func (p *payloads) AddOffers(group GroupID, peer PeerId, offers ...[]byte) {
+func newPayloads() payloads {
+	return payloads{
+		payloads: make(map[GroupID]map[PeerID]protobuf.Payload),
+	}
+}
+
+func (p *payloads) AddOffers(group GroupID, peer PeerID, offers ...[]byte) {
 	p.Lock()
 	defer p.Unlock()
 
 	payload := p.get(group, peer)
 	if payload.Offer == nil {
-		payload.Offer = &Offer{Id: make([][]byte, 0)}
+		payload.Offer = &protobuf.Offer{Id: make([][]byte, 0)}
 	}
 
 	payload.Offer.Id = append(payload.Offer.Id, offers...)
@@ -25,13 +33,13 @@ func (p *payloads) AddOffers(group GroupID, peer PeerId, offers ...[]byte) {
 	p.set(group, peer, payload)
 }
 
-func (p *payloads) AddAcks(group GroupID, peer PeerId, acks ...[]byte) {
+func (p *payloads) AddAcks(group GroupID, peer PeerID, acks ...[]byte) {
 	p.Lock()
 	defer p.Unlock()
 
 	payload := p.get(group, peer)
 	if payload.Ack == nil {
-		payload.Ack = &Ack{Id: make([][]byte, 0)}
+		payload.Ack = &protobuf.Ack{Id: make([][]byte, 0)}
 	}
 
 	payload.Ack.Id = append(payload.Ack.Id, acks...)
@@ -39,13 +47,13 @@ func (p *payloads) AddAcks(group GroupID, peer PeerId, acks ...[]byte) {
 	p.set(group, peer, payload)
 }
 
-func (p *payloads) AddRequests(group GroupID, peer PeerId, request ...[]byte) {
+func (p *payloads) AddRequests(group GroupID, peer PeerID, request ...[]byte) {
 	p.Lock()
 	defer p.Unlock()
 
 	payload := p.get(group, peer)
 	if payload.Request == nil {
-		payload.Request = &Request{Id: make([][]byte, 0)}
+		payload.Request = &protobuf.Request{Id: make([][]byte, 0)}
 	}
 
 	payload.Request.Id = append(payload.Request.Id, request...)
@@ -53,20 +61,20 @@ func (p *payloads) AddRequests(group GroupID, peer PeerId, request ...[]byte) {
 	p.set(group, peer, payload)
 }
 
-func (p *payloads) AddMessages(group GroupID, peer PeerId, messages ...*Message) {
+func (p *payloads) AddMessages(group GroupID, peer PeerID, messages ...*protobuf.Message) {
 	p.Lock()
 	defer p.Unlock()
 
 	payload := p.get(group, peer)
 	if payload.Messages == nil {
-		payload.Messages = make([]*Message, 0)
+		payload.Messages = make([]*protobuf.Message, 0)
 	}
 
 	payload.Messages = append(payload.Messages, messages...)
 	p.set(group, peer, payload)
 }
 
-func (p *payloads) Map(f func(GroupID, PeerId, Payload)) {
+func (p *payloads) MapAndClear(f func(GroupID, PeerID, protobuf.Payload)) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -76,26 +84,19 @@ func (p *payloads) Map(f func(GroupID, PeerId, Payload)) {
 		}
 	}
 
-	p.payloads = make(map[GroupID]map[PeerId]Payload)
+	p.payloads = make(map[GroupID]map[PeerID]protobuf.Payload)
 }
 
-func (p *payloads) RemoveAll() {
-	p.Lock()
-	defer p.Unlock()
-
-	p.payloads = make(map[GroupID]map[PeerId]Payload)
-}
-
-func (p *payloads) get(id GroupID, peerId PeerId) Payload {
-	payload, _ := p.payloads[id][peerId]
+func (p *payloads) get(id GroupID, peer PeerID) protobuf.Payload {
+	payload, _ := p.payloads[id][peer]
 	return payload
 }
 
-func (p *payloads) set(id GroupID, peerId PeerId, payload Payload) {
+func (p *payloads) set(id GroupID, peer PeerID, payload protobuf.Payload) {
 	_, ok := p.payloads[id]
 	if !ok {
-		p.payloads[id] = make(map[PeerId]Payload)
+		p.payloads[id] = make(map[PeerID]protobuf.Payload)
 	}
 
-	p.payloads[id][peerId] = payload
+	p.payloads[id][peer] = payload
 }
