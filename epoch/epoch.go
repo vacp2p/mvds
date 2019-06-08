@@ -1,27 +1,15 @@
 package epoch
 
-import "sync"
+import (
+	"sync/atomic"
+)
 
-type Epoch struct {
-	sync.RWMutex
+type Epoch uint64
 
-	e uint64
-}
-
-func NewEpoch() *Epoch {
-	return &Epoch{e: 0}
-}
-
-func (e *Epoch) Current() uint64 {
-	e.RLock()
-	defer e.RUnlock()
-
-	return e.e
+func (e Epoch) Current() uint64 {
+	return uint64(e)
 }
 
 func (e *Epoch) Increment() {
-	e.Lock()
-	defer e.Unlock()
-
-	e.e += 1
+	*e = Epoch(atomic.AddUint64((*uint64)(e), 1))
 }

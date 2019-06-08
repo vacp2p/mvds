@@ -41,6 +41,8 @@ type Node struct {
 
 
 func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id PeerID, mode Mode) *Node {
+	e := epoch.Epoch(0)
+
 	return &Node{
 		store:     ms,
 		transport: st,
@@ -50,7 +52,7 @@ func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, id Pee
 		payloads:  newPayloads(),
 		nextEpoch: nextEpoch,
 		ID:        id,
-		epoch:     epoch.NewEpoch(),
+		epoch:     &e,
 		mode:      mode,
 	}
 }
