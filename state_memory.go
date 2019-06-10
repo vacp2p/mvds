@@ -10,7 +10,7 @@ type memorySyncState struct {
 	state map[GroupID]map[MessageID]map[PeerID]state
 }
 
-func newSyncState() *memorySyncState {
+func NewSyncState() *memorySyncState {
 	return &memorySyncState{
 		state: make(map[GroupID]map[MessageID]map[PeerID]state),
 	}
