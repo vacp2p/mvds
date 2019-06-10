@@ -26,7 +26,7 @@ type Node struct {
 	transport Transport
 
 	syncState SyncState
-	sharing   map[GroupID][]PeerID
+
 	peers     map[GroupID][]PeerID
 
 	payloads payloads
@@ -45,7 +45,6 @@ func NewNode(ms MessageStore, st Transport, ss SyncState, nextEpoch calculateNex
 		store:     ms,
 		transport: st,
 		syncState: ss,
-		sharing:   make(map[GroupID][]PeerID),
 		peers:     make(map[GroupID][]PeerID),
 		payloads:  newPayloads(),
 		nextEpoch: nextEpoch,
@@ -135,16 +134,8 @@ func (n *Node) AddPeer(group GroupID, id PeerID) {
 	n.peers[group] = append(n.peers[group], id)
 }
 
-func (n *Node) Share(group GroupID, id PeerID) {
-	if _, ok := n.sharing[group]; !ok {
-		n.sharing[group] = make([]PeerID, 0)
-	}
-
-	n.sharing[group] = append(n.sharing[group], id)
-}
-
 func (n Node) IsPeerInGroup(g GroupID, p PeerID) bool {
-	for _, peer := range n.sharing[g] {
+	for _, peer := range n.peers[g] {
 		if bytes.Equal(peer[:], p[:]) {
 			return true
 		}

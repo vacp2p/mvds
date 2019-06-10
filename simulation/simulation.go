@@ -101,7 +101,6 @@ func main() {
 
 			transports[i].out[peer] = input[p]
 			n.AddPeer(group, peer)
-			n.Share(group, peer)
 
 			log.Printf("%x sharing with %x", n.ID[:4], peer[:4])
 		}
