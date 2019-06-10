@@ -57,8 +57,6 @@ func NewNode(ms MessageStore, st Transport, ss SyncState, nextEpoch calculateNex
 
 // Run listens for new messages received by the node and sends out those required every epoch.
 func (n *Node) Run() {
-
-	// this will be completely legitimate with new payload handling
 	go func() {
 		for {
 			p := n.transport.Watch()
