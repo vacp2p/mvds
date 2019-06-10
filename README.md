@@ -4,9 +4,13 @@
 
 Experimental implementation of the [minimal viable data sync protocol specification](https://notes.status.im/bZHk_BNkSAe8-TY7DxdNEg?view).
 
-# Usage
+## Usage
 
-## Simulation
+### Prerequisites
+
+Ensure you have `protoc` (Protobuf) and Golang installed. Then run `make`.
+
+### Simulation
 
 In order to run a very naive simulation, use the simulation command. The simulation is configurable using various CLI flags.
 
@@ -14,6 +18,8 @@ In order to run a very naive simulation, use the simulation command. The simulat
 Usage of simulation/simulation.go:
   -communicating int
     	amount of nodes sending messages (default 2)
+  -interactive int
+    	amount of nodes to use INTERACTIVE mode, the rest will be BATCH (default 3)
   -interval int
     	seconds between messages (default 5)
   -nodes int
@@ -24,6 +30,6 @@ Usage of simulation/simulation.go:
     	amount of nodes each node shares with (default 2)
 ```
 
-# License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details

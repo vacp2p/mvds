@@ -3,12 +3,14 @@ package mvds
 import (
 	"crypto/sha256"
 	"encoding/binary"
+
+	"github.com/status-im/mvds/protobuf"
 )
 
 type MessageID [32]byte
 type GroupID [32]byte
 
-func (m Message) ID() MessageID {
+func ID(m protobuf.Message) MessageID {
 	t := make([]byte, 8)
 	binary.LittleEndian.PutUint64(t, uint64(m.Timestamp))
 
