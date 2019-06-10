@@ -106,7 +106,12 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 			if n.mode == INTERACTIVE {
 				s := State{}
 				s.SendEpoch = n.epoch + 1
-				n.syncState.Set(group, id, p, s)
+				err := n.syncState.Set(group, id, p, s)
+
+				if err != nil {
+					log.Printf("error while setting sync state %s", err.Error())
+				}
+
 				return
 			}
 
@@ -252,7 +257,11 @@ func (n *Node) onAck(group GroupID, sender PeerID, msg protobuf.Ack) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
 
-		n.syncState.Remove(group, id, sender)
+		err := n.syncState.Remove(group, id, sender)
+		if err != nil {
+			log.Printf("error while removing sync state %s", err.Error())
+			continue
+		}
 
 		log.Printf("[%x] ACK (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 	}
