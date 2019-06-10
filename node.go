@@ -104,7 +104,7 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 			}
 
 			if n.mode == INTERACTIVE {
-				s := state{}
+				s := State{}
 				s.SendEpoch = n.epoch + 1
 				n.syncState.Set(group, id, p, s)
 				return
@@ -151,7 +151,7 @@ func (n Node) IsPeerInGroup(g GroupID, p PeerID) bool {
 }
 
 func (n *Node) sendMessages() {
-	n.syncState.Map(func(g GroupID, m MessageID, p PeerID, s state) state {
+	n.syncState.Map(func(g GroupID, m MessageID, p PeerID, s State) State {
 		if s.SendEpoch < n.epoch || !n.IsPeerInGroup(g, p) {
 			return s
 		}
@@ -277,7 +277,7 @@ func (n *Node) onMessage(group GroupID, sender PeerID, msg protobuf.Message) err
 	return nil
 }
 
-func (n Node) updateSendEpoch(s state) state {
+func (n Node) updateSendEpoch(s State) State {
 	s.SendCount += 1
 	s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
 	return s

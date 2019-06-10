@@ -7,16 +7,16 @@ import (
 type memorySyncState struct {
 	sync.Mutex
 
-	state map[GroupID]map[MessageID]map[PeerID]state
+	state map[GroupID]map[MessageID]map[PeerID]State
 }
 
 func NewSyncState() *memorySyncState {
 	return &memorySyncState{
-		state: make(map[GroupID]map[MessageID]map[PeerID]state),
+		state: make(map[GroupID]map[MessageID]map[PeerID]State),
 	}
 }
 
-func (s *memorySyncState) Get(group GroupID, id MessageID, sender PeerID) state {
+func (s *memorySyncState) Get(group GroupID, id MessageID, sender PeerID) State {
 	s.Lock()
 	defer s.Unlock()
 
@@ -24,16 +24,16 @@ func (s *memorySyncState) Get(group GroupID, id MessageID, sender PeerID) state 
 	return state
 }
 
-func (s *memorySyncState) Set(group GroupID, id MessageID, sender PeerID, newState state) {
+func (s *memorySyncState) Set(group GroupID, id MessageID, sender PeerID, newState State) {
 	s.Lock()
 	defer s.Unlock()
 
 	if _, ok := s.state[group]; !ok {
-		s.state[group] = make(map[MessageID]map[PeerID]state)
+		s.state[group] = make(map[MessageID]map[PeerID]State)
 	}
 
 	if _, ok := s.state[group][id]; !ok {
-		s.state[group][id] = make(map[PeerID]state)
+		s.state[group][id] = make(map[PeerID]State)
 	}
 
 	s.state[group][id][sender] = newState
@@ -46,7 +46,7 @@ func (s *memorySyncState) Remove(group GroupID, id MessageID, sender PeerID) {
 	delete(s.state[group][id], sender)
 }
 
-func (s *memorySyncState) Map(process func(g GroupID, m MessageID, p PeerID, s state) state) {
+func (s *memorySyncState) Map(process func(GroupID, MessageID, PeerID, State) State) {
 	s.Lock()
 	defer s.Unlock()
 
