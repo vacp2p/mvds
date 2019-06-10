@@ -138,7 +138,14 @@ OUTER:
 
 func createNode(transport *Transport, id mvds.PeerID, mode mvds.Mode) *mvds.Node {
 	ds := mvds.NewDummyStore()
-	return mvds.NewNode(&ds, transport, Calc, id, mode)
+	return mvds.NewNode(
+		&ds,
+		transport,
+		mvds.NewSyncState(),
+		Calc,
+		id,
+		mode,
+	)
 }
 
 func chat(group mvds.GroupID, nodes ...*mvds.Node) {
