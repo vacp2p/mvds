@@ -151,7 +151,7 @@ func (n Node) IsPeerInGroup(g GroupID, p PeerID) bool {
 }
 
 func (n *Node) sendMessages() {
-	n.syncState.Map(func(g GroupID, m MessageID, p PeerID, s State) State {
+	err := n.syncState.Map(func(g GroupID, m MessageID, p PeerID, s State) State {
 		if s.SendEpoch < n.epoch || !n.IsPeerInGroup(g, p) {
 			return s
 		}
@@ -159,6 +159,10 @@ func (n *Node) sendMessages() {
 		n.payloads.AddOffers(g, p, m[:])
 		return n.updateSendEpoch(s)
 	})
+
+	if err != nil {
+		log.Printf("error while mapping sync state: %s", err.Error())
+	}
 
 	n.payloads.MapAndClear(func(id GroupID, peer PeerID, payload protobuf.Payload) {
 		err := n.transport.Send(id, n.ID, peer, payload)
