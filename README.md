@@ -1,7 +1,5 @@
 # Minimal Viable Data Sync
 
-:warning: This code is not production ready, race conditions are likely to occur :warning:
-
 Experimental implementation of the [minimal viable data sync protocol specification](https://notes.status.im/bZHk_BNkSAe8-TY7DxdNEg?view).
 
 ## Usage
@@ -15,7 +13,7 @@ Ensure you have `protoc` (Protobuf) and Golang installed. Then run `make`.
 In order to run a very naive simulation, use the simulation command. The simulation is configurable using various CLI flags.
 
 ```
-Usage of simulation/simulation.go:
+Usage of main.go:
   -communicating int
     	amount of nodes sending messages (default 2)
   -interactive int
