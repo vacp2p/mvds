@@ -111,8 +111,6 @@ func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID,
 				if err != nil {
 					log.Printf("error while setting sync state %s", err.Error())
 				}
-
-				return
 			}
 
 			if n.mode == BATCH {
