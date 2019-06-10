@@ -5,7 +5,7 @@ type state struct {
 	SendEpoch   uint64
 }
 
-type syncState interface {
+type SyncState interface {
 	Get(group GroupID, id MessageID, sender PeerID) state
 	Set(group GroupID, id MessageID, sender PeerID, newState state)
 	Remove(group GroupID, id MessageID, sender PeerID)

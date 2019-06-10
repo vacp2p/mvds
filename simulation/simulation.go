@@ -118,11 +118,7 @@ func selectPeers(nodeCount int, currentNode int, sharing int) []int {
 	peers := make([]int, 0)
 
 OUTER:
-	for {
-		if len(peers) == sharing {
-			break
-		}
-
+	for len(peers) != sharing {
 		math.Seed(time.Now().UnixNano())
 		i := math.Intn(nodeCount)
 		if i == currentNode {
@@ -143,7 +139,14 @@ OUTER:
 
 func createNode(transport *Transport, id mvds.PeerID, mode mvds.Mode) *mvds.Node {
 	ds := mvds.NewDummyStore()
-	return mvds.NewNode(&ds, transport, Calc, id, mode)
+	return mvds.NewNode(
+		&ds,
+		transport,
+		mvds.NewSyncState(),
+		Calc,
+		id,
+		mode,
+	)
 }
 
 func chat(group mvds.GroupID, nodes ...*mvds.Node) {
