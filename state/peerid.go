@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-type PeerID [64]byte
+type PeerID [65]byte
 
 // Turns an ECSDA PublicKey to a PeerID
 func PublicKeyToPeerID(k ecdsa.PublicKey) PeerID {
