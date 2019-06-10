@@ -1,13 +1,13 @@
 package mvds
 
-type state struct {
+type State struct {
 	SendCount   uint64
 	SendEpoch   int64
 }
 
-type syncState interface {
-	Get(group GroupID, id MessageID, sender PeerID) state
-	Set(group GroupID, id MessageID, sender PeerID, newState state)
-	Remove(group GroupID, id MessageID, sender PeerID)
-	Map(process func(g GroupID, m MessageID, p PeerID, s state) state)
+type SyncState interface {
+	Get(group GroupID, id MessageID, peer PeerID) (State, error)
+	Set(group GroupID, id MessageID, peer PeerID, newState State) error
+	Remove(group GroupID, id MessageID, peer PeerID) error
+	Map(process func(GroupID, MessageID, PeerID, State) State) error
 }

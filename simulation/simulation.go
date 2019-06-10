@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/status-im/mvds"
+	"github.com/status-im/mvds/protobuf"
 )
 
 var (
@@ -35,7 +36,7 @@ func (t *Transport) Watch() mvds.Packet {
 	return <-t.in
 }
 
-func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerID, peer mvds.PeerID, payload mvds.Payload) error {
+func (t *Transport) Send(group mvds.GroupID, sender mvds.PeerID, peer mvds.PeerID, payload protobuf.Payload) error {
 	math.Seed(time.Now().UnixNano())
 	if math.Intn(100) < offline {
 		return nil
@@ -117,11 +118,7 @@ func selectPeers(nodeCount int, currentNode int, sharing int) []int {
 	peers := make([]int, 0)
 
 OUTER:
-	for {
-		if len(peers) == sharing {
-			break
-		}
-
+	for len(peers) != sharing {
 		math.Seed(time.Now().UnixNano())
 		i := math.Intn(nodeCount)
 		if i == currentNode {
@@ -142,7 +139,16 @@ OUTER:
 
 func createNode(transport *Transport, id mvds.PeerID, mode mvds.Mode) *mvds.Node {
 	ds := mvds.NewDummyStore()
-	return mvds.NewNode(&ds, transport, Calc, 0, id, mode)
+
+	return mvds.NewNode(
+		&ds,
+		transport,
+		mvds.NewSyncState(),
+		Calc,
+		0,
+		id,
+		mode,
+	)
 }
 
 func chat(group mvds.GroupID, nodes ...*mvds.Node) {

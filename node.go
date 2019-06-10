@@ -8,6 +8,8 @@ import (
 	"log"
 	"sync/atomic"
 	"time"
+
+	"github.com/status-im/mvds/protobuf"
 )
 
 type Mode string
@@ -23,7 +25,7 @@ type Node struct {
 	store     MessageStore
 	transport Transport
 
-	syncState syncState
+	syncState SyncState
 	sharing   map[GroupID][]PeerID
 	peers     map[GroupID][]PeerID
 
@@ -38,11 +40,11 @@ type Node struct {
 }
 
 
-func NewNode(ms MessageStore, st Transport, nextEpoch calculateNextEpoch, currentEpoch int64, id PeerID, mode Mode) *Node {
+func NewNode(ms MessageStore, st Transport, ss SyncState, nextEpoch calculateNextEpoch, currentEpoch int64, id PeerID, mode Mode) *Node {
 	return &Node{
 		store:     ms,
 		transport: st,
-		syncState: newSyncState(),
+		syncState: ss,
 		sharing:   make(map[GroupID][]PeerID),
 		peers:     make(map[GroupID][]PeerID),
 		payloads:  newPayloads(),
@@ -77,13 +79,13 @@ func (n *Node) Run() {
 
 // AppendMessage sends a message to a given group.
 func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
-	m := Message{
+	m := protobuf.Message{
 		GroupId:   group[:],
 		Timestamp: time.Now().Unix(),
 		Body:      data,
 	}
 
-	id := m.ID()
+	id := ID(m)
 
 	peers, ok := n.peers[group]
 	if !ok {
@@ -102,9 +104,14 @@ func (n *Node) AppendMessage(group GroupID, data []byte) (MessageID, error) {
 			}
 
 			if n.mode == INTERACTIVE {
-				s := state{}
+				s := State{}
 				s.SendEpoch = n.epoch + 1
-				n.syncState.Set(group, id, p, s)
+				err := n.syncState.Set(group, id, p, s)
+
+				if err != nil {
+					log.Printf("error while setting sync state %s", err.Error())
+				}
+
 				return
 			}
 
@@ -149,7 +156,7 @@ func (n Node) IsPeerInGroup(g GroupID, p PeerID) bool {
 }
 
 func (n *Node) sendMessages() {
-	n.syncState.Map(func(g GroupID, m MessageID, p PeerID, s state) state {
+	err := n.syncState.Map(func(g GroupID, m MessageID, p PeerID, s State) State {
 		if s.SendEpoch < n.epoch || !n.IsPeerInGroup(g, p) {
 			return s
 		}
@@ -158,7 +165,11 @@ func (n *Node) sendMessages() {
 		return n.updateSendEpoch(s)
 	})
 
-	n.payloads.MapAndClear(func(id GroupID, peer PeerID, payload Payload) {
+	if err != nil {
+		log.Printf("error while mapping sync state: %s", err.Error())
+	}
+
+	n.payloads.MapAndClear(func(id GroupID, peer PeerID, payload protobuf.Payload) {
 		err := n.transport.Send(id, n.ID, peer, payload)
 		if err != nil {
 			log.Printf("error sending message: %s", err.Error())
@@ -167,7 +178,7 @@ func (n *Node) sendMessages() {
 	})
 }
 
-func (n *Node) onPayload(group GroupID, sender PeerID, payload Payload) {
+func (n *Node) onPayload(group GroupID, sender PeerID, payload protobuf.Payload) {
 	if payload.Ack != nil {
 		n.onAck(group, sender, *payload.Ack)
 	}
@@ -185,7 +196,7 @@ func (n *Node) onPayload(group GroupID, sender PeerID, payload Payload) {
 	}
 }
 
-func (n *Node) onOffer(group GroupID, sender PeerID, msg Offer) [][]byte {
+func (n *Node) onOffer(group GroupID, sender PeerID, msg protobuf.Offer) [][]byte {
 	r := make([][]byte, 0)
 
 	for _, raw := range msg.Id {
@@ -204,8 +215,8 @@ func (n *Node) onOffer(group GroupID, sender PeerID, msg Offer) [][]byte {
 	return r
 }
 
-func (n *Node) onRequest(group GroupID, sender PeerID, msg Request) []*Message {
-	m := make([]*Message, 0)
+func (n *Node) onRequest(group GroupID, sender PeerID, msg protobuf.Request) []*protobuf.Message {
+	m := make([]*protobuf.Message, 0)
 
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
@@ -222,7 +233,18 @@ func (n *Node) onRequest(group GroupID, sender PeerID, msg Request) []*Message {
 			continue
 		}
 
-		n.syncState.Set(group, id, sender, n.updateSendEpoch(n.syncState.Get(group, id, sender)))
+		// @todo this probably change the sync state to retransmit messages rather than offers
+		s, err := n.syncState.Get(group, id, sender)
+		if err != nil {
+			log.Printf("error (%s) getting sync state group: %x id: %x peer: %x", err.Error(), group[:4], id[:4], sender[:4])
+			continue
+		}
+
+		err = n.syncState.Set(group, id, sender, n.updateSendEpoch(s))
+		if err != nil {
+			log.Printf("error (%s) setting sync state group: %x id: %x peer: %x", err.Error(), group[:4], id[:4], sender[:4])
+			continue
+		}
 
 		m = append(m, &message)
 
@@ -232,17 +254,21 @@ func (n *Node) onRequest(group GroupID, sender PeerID, msg Request) []*Message {
 	return m
 }
 
-func (n *Node) onAck(group GroupID, sender PeerID, msg Ack) {
+func (n *Node) onAck(group GroupID, sender PeerID, msg protobuf.Ack) {
 	for _, raw := range msg.Id {
 		id := toMessageID(raw)
 
-		n.syncState.Remove(group, id, sender)
+		err := n.syncState.Remove(group, id, sender)
+		if err != nil {
+			log.Printf("error while removing sync state %s", err.Error())
+			continue
+		}
 
 		log.Printf("[%x] ACK (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 	}
 }
 
-func (n *Node) onMessages(group GroupID, sender PeerID, messages []*Message) [][]byte {
+func (n *Node) onMessages(group GroupID, sender PeerID, messages []*protobuf.Message) [][]byte {
 	a := make([][]byte, 0)
 
 	for _, m := range messages {
@@ -252,7 +278,7 @@ func (n *Node) onMessages(group GroupID, sender PeerID, messages []*Message) [][
 			continue
 		}
 
-		id := m.ID()
+		id := ID(*m)
 		log.Printf("[%x] sending ACK (%x -> %x): %x\n", group[:4], n.ID[:4], sender[:4], id[:4])
 		a = append(a, id[:])
 	}
@@ -260,8 +286,8 @@ func (n *Node) onMessages(group GroupID, sender PeerID, messages []*Message) [][
 	return a
 }
 
-func (n *Node) onMessage(group GroupID, sender PeerID, msg Message) error {
-	id := msg.ID()
+func (n *Node) onMessage(group GroupID, sender PeerID, msg protobuf.Message) error {
+	id := ID(msg)
 	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
 	// @todo share message with those around us
@@ -275,7 +301,7 @@ func (n *Node) onMessage(group GroupID, sender PeerID, msg Message) error {
 	return nil
 }
 
-func (n Node) updateSendEpoch(s state) state {
+func (n Node) updateSendEpoch(s State) State {
 	s.SendCount += 1
 	s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
 	return s

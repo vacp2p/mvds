@@ -3,15 +3,17 @@ package mvds
 import (
 	"errors"
 	"sync"
+
+	"github.com/status-im/mvds/protobuf"
 )
 
 type DummyStore struct {
 	sync.Mutex
-	ms map[MessageID]Message
+	ms map[MessageID]protobuf.Message
 }
 
 func NewDummyStore() DummyStore {
-	return DummyStore{ms: make(map[MessageID]Message)}
+	return DummyStore{ms: make(map[MessageID]protobuf.Message)}
 }
 
 func (ds *DummyStore) Has(id MessageID) bool {
@@ -21,21 +23,21 @@ func (ds *DummyStore) Has(id MessageID) bool {
 	_, ok := ds.ms[id]; return ok
 }
 
-func (ds *DummyStore) Get(id MessageID) (Message, error) {
+func (ds *DummyStore) Get(id MessageID) (protobuf.Message, error) {
 	ds.Lock()
 	defer ds.Unlock()
 
 	m, ok := ds.ms[id]
 	if !ok {
-		return Message{}, errors.New("message does not exist")
+		return protobuf.Message{}, errors.New("message does not exist")
 	}
 
 	return m, nil
 }
 
-func (ds *DummyStore) Add(message Message) error {
+func (ds *DummyStore) Add(message protobuf.Message) error {
 	ds.Lock()
 	defer ds.Unlock()
-	ds.ms[message.ID()] = message
+	ds.ms[ID(message)] = message
 	return nil
 }
