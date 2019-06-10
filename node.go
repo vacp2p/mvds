@@ -241,7 +241,7 @@ func (n *Node) onRequest(group GroupID, sender PeerID, msg protobuf.Request) []*
 
 		err = n.syncState.Set(group, id, sender, n.updateSendEpoch(s))
 		if err != nil {
-			log.Printf("error (%s) getting sync state group: %x id: %x peer: %x", err.Error(), group[:4], id[:4], sender[:4])
+			log.Printf("error (%s) setting sync state group: %x id: %x peer: %x", err.Error(), group[:4], id[:4], sender[:4])
 			continue
 		}
 
