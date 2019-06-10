@@ -13,7 +13,7 @@ Ensure you have `protoc` (Protobuf) and Golang installed. Then run `make`.
 In order to run a very naive simulation, use the simulation command. The simulation is configurable using various CLI flags.
 
 ```
-Usage of simulation/simulation.go:
+Usage of main.go:
   -communicating int
     	amount of nodes sending messages (default 2)
   -interactive int
