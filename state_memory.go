@@ -16,15 +16,15 @@ func NewSyncState() *memorySyncState {
 	}
 }
 
-func (s *memorySyncState) Get(group GroupID, id MessageID, peer PeerID) State {
+func (s *memorySyncState) Get(group GroupID, id MessageID, peer PeerID) (State, error) {
 	s.Lock()
 	defer s.Unlock()
 
 	state, _ := s.state[group][id][peer]
-	return state
+	return state, nil
 }
 
-func (s *memorySyncState) Set(group GroupID, id MessageID, peer PeerID, newState State) {
+func (s *memorySyncState) Set(group GroupID, id MessageID, peer PeerID, newState State) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -37,16 +37,18 @@ func (s *memorySyncState) Set(group GroupID, id MessageID, peer PeerID, newState
 	}
 
 	s.state[group][id][peer] = newState
+	return nil
 }
 
-func (s *memorySyncState) Remove(group GroupID, id MessageID, peer PeerID) {
+func (s *memorySyncState) Remove(group GroupID, id MessageID, peer PeerID) error {
 	s.Lock()
 	defer s.Unlock()
 
 	delete(s.state[group][id], peer)
+	return nil
 }
 
-func (s *memorySyncState) Map(process func(GroupID, MessageID, PeerID, State) State) {
+func (s *memorySyncState) Map(process func(GroupID, MessageID, PeerID, State) State) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -57,4 +59,6 @@ func (s *memorySyncState) Map(process func(GroupID, MessageID, PeerID, State) St
 			}
 		}
 	}
+
+	return nil
 }
