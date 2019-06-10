@@ -154,7 +154,7 @@ func (n Node) IsPeerInGroup(g GroupID, p PeerID) bool {
 }
 
 func (n *Node) sendMessages() {
-	err := n.syncState.Map(func(g GroupID, m MessageID, p PeerID, s State) State {
+	err := n.syncState.Map(n.epoch, func(g GroupID, m MessageID, p PeerID, s State) State {
 		if !n.IsPeerInGroup(g, p) {
 			return s
 		}
