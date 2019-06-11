@@ -1,4 +1,4 @@
-package mvds
+package state
 
 import (
 	"sync"
@@ -48,13 +48,17 @@ func (s *memorySyncState) Remove(group GroupID, id MessageID, peer PeerID) error
 	return nil
 }
 
-func (s *memorySyncState) Map(process func(GroupID, MessageID, PeerID, State) State) error {
+func (s *memorySyncState) Map(epoch int64, process func(GroupID, MessageID, PeerID, State) State) error {
 	s.Lock()
 	defer s.Unlock()
 
 	for group, syncstate := range s.state {
 		for id, peers := range syncstate {
 			for peer, state := range peers {
+				if state.SendEpoch < epoch {
+					continue
+				}
+
 				s.state[group][id][peer] = process(group, id, peer, state)
 			}
 		}

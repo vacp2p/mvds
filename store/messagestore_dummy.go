@@ -1,29 +1,30 @@
-package mvds
+package store
 
 import (
 	"errors"
 	"sync"
 
 	"github.com/status-im/mvds/protobuf"
+	"github.com/status-im/mvds/state"
 )
 
 type DummyStore struct {
 	sync.Mutex
-	ms map[MessageID]protobuf.Message
+	ms map[state.MessageID]protobuf.Message
 }
 
 func NewDummyStore() DummyStore {
-	return DummyStore{ms: make(map[MessageID]protobuf.Message)}
+	return DummyStore{ms: make(map[state.MessageID]protobuf.Message)}
 }
 
-func (ds *DummyStore) Has(id MessageID) bool {
+func (ds *DummyStore) Has(id state.MessageID) bool {
 	ds.Lock()
 	defer ds.Unlock()
 
 	_, ok := ds.ms[id]; return ok
 }
 
-func (ds *DummyStore) Get(id MessageID) (protobuf.Message, error) {
+func (ds *DummyStore) Get(id state.MessageID) (protobuf.Message, error) {
 	ds.Lock()
 	defer ds.Unlock()
 
@@ -38,6 +39,6 @@ func (ds *DummyStore) Get(id MessageID) (protobuf.Message, error) {
 func (ds *DummyStore) Add(message protobuf.Message) error {
 	ds.Lock()
 	defer ds.Unlock()
-	ds.ms[ID(message)] = message
+	ds.ms[state.ID(message)] = message
 	return nil
 }
