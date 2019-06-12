@@ -46,8 +46,17 @@ type Node struct {
 	mode  Mode
 }
 
-func NewNode(ms store.MessageStore, st transport.Transport, ss state.SyncState, nextEpoch calculateNextEpoch, id state.PeerID, mode Mode) *Node {
+func NewNode(
+	ms store.MessageStore,
+	st transport.Transport,
+	ss state.SyncState,
+	nextEpoch calculateNextEpoch,
+	currentEpoch int64,
+	id state.PeerID,
+	mode Mode,
+) *Node {
 	ctx, cancel := context.WithCancel(context.Background())
+
 	return &Node{
 		ctx:       ctx,
 		cancel:    cancel,
@@ -58,7 +67,7 @@ func NewNode(ms store.MessageStore, st transport.Transport, ss state.SyncState, 
 		payloads:  newPayloads(),
 		nextEpoch: nextEpoch,
 		ID:        id,
-		epoch:     0,
+		epoch:     currentEpoch,
 		mode:      mode,
 	}
 }
@@ -134,11 +143,10 @@ func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID,
 				if err != nil {
 					log.Printf("error while setting sync state %s", err.Error())
 				}
-
-				return
 			}
 
 			if n.mode == BATCH {
+				// @TODO this if flawed cause we never retransmit
 				n.payloads.AddMessages(group, p, &m)
 				log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID[:4], p[:4], id[:4])
 			}
@@ -171,8 +179,8 @@ func (n Node) IsPeerInGroup(g state.GroupID, p state.PeerID) bool {
 }
 
 func (n *Node) sendMessages() {
-	err := n.syncState.Map(func(g state.GroupID, m state.MessageID, p state.PeerID, s state.State) state.State {
-		if s.SendEpoch < n.epoch || !n.IsPeerInGroup(g, p) {
+	err := n.syncState.Map(n.epoch, func(g state.GroupID, m state.MessageID, p state.PeerID, s state.State) state.State {
+		if !n.IsPeerInGroup(g, p) {
 			return s
 		}
 
