@@ -146,6 +146,7 @@ func createNode(transport *Transport, id state.PeerID, mode node.Mode) *node.Nod
 		transport,
 		state.NewSyncState(),
 		Calc,
+		0,
 		id,
 		mode,
 	)
