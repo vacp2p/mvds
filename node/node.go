@@ -288,7 +288,17 @@ func (n *Node) onMessage(group state.GroupID, sender state.PeerID, msg protobuf.
 	id := state.ID(msg)
 	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
-	// @todo share message with those around us
+	go func() {
+		for _, peer := range n.peers[group] {
+			if peer == sender {
+				continue
+			}
+
+			s := state.State{}
+			s.SendEpoch = n.epoch + 1
+			n.syncState.Set(group, id, peer, s)
+		}
+	}()
 
 	err := n.store.Add(msg)
 	if err != nil {
