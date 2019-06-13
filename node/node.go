@@ -15,11 +15,11 @@ import (
 	"github.com/status-im/mvds/transport"
 )
 
-type Mode string
+type Mode int
 
 const (
-	INTERACTIVE Mode = "interactive"
-	BATCH       Mode = "batch"
+	INTERACTIVE Mode = iota
+	BATCH
 )
 
 type calculateNextEpoch func(count uint64, epoch uint64) uint64
@@ -42,8 +42,16 @@ type Node struct {
 	mode  Mode
 }
 
-func NewNode(ms store.MessageStore, st transport.Transport, ss state.SyncState, nextEpoch calculateNextEpoch, id state.PeerID, mode Mode) *Node {
-	e := epoch.Epoch(0)
+func NewNode(
+	ms store.MessageStore,
+	st transport.Transport,
+	ss state.SyncState,
+	nextEpoch calculateNextEpoch,
+	currentEpoch int64,
+	id state.PeerID,
+	mode Mode,
+) *Node {
+	e := epoch.Epoch(currentEpoch)
 
 	return &Node{
 		store:     ms,
@@ -115,6 +123,7 @@ func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID,
 			}
 
 			if n.mode == BATCH {
+				// @TODO this if flawed cause we never retransmit
 				n.payloads.AddMessages(group, p, &m)
 				log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID[:4], p[:4], id[:4])
 			}
@@ -147,8 +156,8 @@ func (n Node) IsPeerInGroup(g state.GroupID, p state.PeerID) bool {
 }
 
 func (n *Node) sendMessages() {
-	err := n.syncState.Map(func(g state.GroupID, m state.MessageID, p state.PeerID, s state.State) state.State {
-		if s.SendEpoch < n.epoch.Current() || !n.IsPeerInGroup(g, p) {
+	err := n.syncState.Map(n.epoch, func(g state.GroupID, m state.MessageID, p state.PeerID, s state.State) state.State {
+		if !n.IsPeerInGroup(g, p) {
 			return s
 		}
 
@@ -281,7 +290,17 @@ func (n *Node) onMessage(group state.GroupID, sender state.PeerID, msg protobuf.
 	id := state.ID(msg)
 	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
-	// @todo share message with those around us
+	go func() {
+		for _, peer := range n.peers[group] {
+			if peer == sender {
+				continue
+			}
+
+			s := state.State{}
+			s.SendEpoch = n.epoch.Current() + 1
+			n.syncState.Set(group, id, peer, s)
+		}
+	}()
 
 	err := n.store.Add(msg)
 	if err != nil {

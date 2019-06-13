@@ -2,6 +2,8 @@ package state
 
 import (
 	"sync"
+
+	"github.com/status-im/mvds/epoch"
 )
 
 type memorySyncState struct {
@@ -48,13 +50,17 @@ func (s *memorySyncState) Remove(group GroupID, id MessageID, peer PeerID) error
 	return nil
 }
 
-func (s *memorySyncState) Map(process func(GroupID, MessageID, PeerID, State) State) error {
+func (s *memorySyncState) Map(epoch *epoch.Epoch, process func(GroupID, MessageID, PeerID, State) State) error {
 	s.Lock()
 	defer s.Unlock()
 
 	for group, syncstate := range s.state {
 		for id, peers := range syncstate {
 			for peer, state := range peers {
+				if state.SendEpoch < epoch.Current() {
+					continue
+				}
+
 				s.state[group][id][peer] = process(group, id, peer, state)
 			}
 		}
