@@ -15,6 +15,7 @@ import (
 	"github.com/status-im/mvds/transport"
 )
 
+// Mode represents the synchronization mode.
 type Mode int
 
 const (
