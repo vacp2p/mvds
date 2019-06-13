@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"errors"
 	"flag"
@@ -172,8 +170,13 @@ func Calc(count uint64, epoch int64) int64 {
 }
 
 func peerID() state.PeerID {
-	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	return state.PublicKeyToPeerID(key.PublicKey)
+	bytes := make([]byte, 65)
+	rand.Read(bytes)
+
+	id := state.PeerID{}
+	copy(id[:], bytes)
+
+	return id
 }
 
 func groupId() state.GroupID {
