@@ -4,16 +4,13 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
 	math "math/rand"
-	"sync"
 	"time"
 
 	"github.com/status-im/mvds/node"
-	"github.com/status-im/mvds/protobuf"
 	"github.com/status-im/mvds/state"
 	"github.com/status-im/mvds/store"
 	"github.com/status-im/mvds/transport"
@@ -27,32 +24,6 @@ var (
 	interval      int64
 	interactive   int
 )
-
-type Transport struct {
-	sync.Mutex
-
-	in  <-chan transport.Packet
-	out map[state.PeerID]chan<- transport.Packet
-}
-
-func (t *Transport) Watch() transport.Packet {
-	return <-t.in
-}
-
-func (t *Transport) Send(group state.GroupID, sender state.PeerID, peer state.PeerID, payload protobuf.Payload) error {
-	math.Seed(time.Now().UnixNano())
-	if math.Intn(100) < offline {
-		return nil
-	}
-
-	c, ok := t.out[peer]
-	if !ok {
-		return errors.New("peer unknown")
-	}
-
-	c <- transport.Packet{Group: group, Sender: sender, Payload: payload}
-	return nil
-}
 
 func init() {
 	flag.IntVar(&offline, "offline", 90, "percentage of time a node is offline")
@@ -68,16 +39,13 @@ func main() {
 
 	// @todo validate flags
 
-	transports := make([]*Transport, 0)
+	transports := make([]*transport.ChannelTransport, 0)
 	input := make([]chan transport.Packet, 0)
 	nodes := make([]*node.Node, 0)
 	for i := 0; i < nodeCount; i++ {
 		in := make(chan transport.Packet)
 
-		t := &Transport{
-			in:  in,
-			out: make(map[state.PeerID]chan<- transport.Packet),
-		}
+		t := transport.NewChannelTransport(offline, in)
 
 		input = append(input, in)
 		transports = append(transports, t)
@@ -102,7 +70,7 @@ func main() {
 		for _, p := range peers {
 			peer := nodes[p].ID
 
-			transports[i].out[peer] = input[p]
+			transports[i].AddOutput(peer, input[p])
 			n.AddPeer(group, peer)
 
 			log.Printf("%x sharing with %x", n.ID[:4], peer[:4])
@@ -139,7 +107,7 @@ OUTER:
 	return peers
 }
 
-func createNode(transport *Transport, id state.PeerID, mode node.Mode) *node.Node {
+func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) *node.Node {
 	ds := store.NewDummyStore()
 	return node.NewNode(
 		&ds,
