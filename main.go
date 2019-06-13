@@ -74,13 +74,13 @@ func main() {
 	for i := 0; i < nodeCount; i++ {
 		in := make(chan transport.Packet)
 
-		transport := &Transport{
+		t := &Transport{
 			in:  in,
 			out: make(map[state.PeerID]chan<- transport.Packet),
 		}
 
 		input = append(input, in)
-		transports = append(transports, transport)
+		transports = append(transports, t)
 
 		mode := node.INTERACTIVE
 		if i+1 >= interactive {
@@ -89,7 +89,7 @@ func main() {
 
 		nodes = append(
 			nodes,
-			createNode(transport, peerID(), mode),
+			createNode(t, peerID(), mode),
 		)
 	}
 
