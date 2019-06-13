@@ -24,6 +24,7 @@ const (
 
 type calculateNextEpoch func(count uint64, epoch int64) int64
 
+// Node represents an MVDS node, it runs all the logic like sending and receiving protocol messages.
 type Node struct {
 	store     store.MessageStore
 	transport transport.Transport
@@ -42,6 +43,7 @@ type Node struct {
 	mode  Mode
 }
 
+// NewNode returns a new node.
 func NewNode(
 	ms store.MessageStore,
 	st transport.Transport,
@@ -134,7 +136,7 @@ func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID,
 	return id, nil
 }
 
-// AddPeer adds a peer to a specific group making it a recipient of messages
+// AddPeer adds a peer to a specific group making it a recipient of messages.
 func (n *Node) AddPeer(group state.GroupID, id state.PeerID) {
 	if _, ok := n.peers[group]; !ok {
 		n.peers[group] = make([]state.PeerID, 0)
@@ -143,7 +145,7 @@ func (n *Node) AddPeer(group state.GroupID, id state.PeerID) {
 	n.peers[group] = append(n.peers[group], id)
 }
 
-// IsPeerInGroup checks whether a peer is in the specified group
+// IsPeerInGroup checks whether a peer is in the specified group.
 func (n Node) IsPeerInGroup(g state.GroupID, p state.PeerID) bool {
 	for _, peer := range n.peers[g] {
 		if bytes.Equal(peer[:], p[:]) {
