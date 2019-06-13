@@ -1,3 +1,4 @@
+// Package State contains everything related to the synchronization state for MVDS.
 package state
 
 type State struct {

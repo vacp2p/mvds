@@ -1,3 +1,4 @@
+// Package transport contains transport related logic for MVDS.
 package transport
 
 import (
