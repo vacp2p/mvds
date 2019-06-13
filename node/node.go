@@ -15,11 +15,11 @@ import (
 	"github.com/status-im/mvds/transport"
 )
 
-type Mode string
+type Mode int
 
 const (
-	INTERACTIVE Mode = "interactive"
-	BATCH       Mode = "batch"
+	INTERACTIVE Mode = iota
+	BATCH
 )
 
 type calculateNextEpoch func(count uint64, epoch int64) int64
