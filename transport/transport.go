@@ -12,6 +12,6 @@ type Packet struct {
 }
 
 type Transport interface {
-	Watch() Packet // @todo might need be changed in the future
+	Watch() Packet
 	Send(group state.GroupID, sender state.PeerID, peer state.PeerID, payload protobuf.Payload) error
 }

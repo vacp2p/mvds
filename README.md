@@ -1,5 +1,7 @@
 # Minimal Viable Data Sync
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/status-im/mvds)](https://goreportcard.com/report/github.com/status-im/mvds)
+
 Experimental implementation of the [minimal viable data sync protocol specification](https://notes.status.im/bZHk_BNkSAe8-TY7DxdNEg?view).
 
 ## Usage

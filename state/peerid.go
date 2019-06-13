@@ -8,7 +8,7 @@ import (
 
 type PeerID [65]byte
 
-// Turns an ECSDA PublicKey to a PeerID
+// PublicKeyToPeerID Turns an ECSDA PublicKey to a PeerID
 func PublicKeyToPeerID(k ecdsa.PublicKey) PeerID {
 	var p PeerID
 	copy(p[:], crypto.FromECDSAPub(&k))
