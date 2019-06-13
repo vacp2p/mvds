@@ -143,6 +143,7 @@ func (n *Node) AddPeer(group state.GroupID, id state.PeerID) {
 	n.peers[group] = append(n.peers[group], id)
 }
 
+// IsPeerInGroup checks whether a peer is in the specified group
 func (n Node) IsPeerInGroup(g state.GroupID, p state.PeerID) bool {
 	for _, peer := range n.peers[g] {
 		if bytes.Equal(peer[:], p[:]) {
