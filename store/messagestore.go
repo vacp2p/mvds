@@ -1,3 +1,4 @@
+// Package store contains everything storage related for MVDS.
 package store
 
 import (

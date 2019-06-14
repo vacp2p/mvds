@@ -1,3 +1,4 @@
+// Package transport contains transport related logic for MVDS.
 package transport
 
 import (
@@ -11,6 +12,7 @@ type Packet struct {
 	Payload protobuf.Payload
 }
 
+// Transport defines an interface allowing for agnostic transport implementations.
 type Transport interface {
 	Watch() Packet
 	Send(group state.GroupID, sender state.PeerID, peer state.PeerID, payload protobuf.Payload) error
