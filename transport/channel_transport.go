@@ -37,6 +37,8 @@ func (t *ChannelTransport) Watch() Packet {
 }
 
 func (t *ChannelTransport) Send(group state.GroupID, sender state.PeerID, peer state.PeerID, payload protobuf.Payload) error {
+	// @todo we can do this better, we put node onlineness into a goroutine where we just stop the nodes for x seconds
+	// outside of this class
 	math.Seed(time.Now().UnixNano())
 	if math.Intn(100) < t.offline {
 		return nil
