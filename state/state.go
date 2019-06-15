@@ -1,3 +1,4 @@
+// Package state contains everything related to the synchronization state for MVDS.
 package state
 
 import "github.com/status-im/mvds/epoch"

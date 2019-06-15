@@ -1,9 +1,11 @@
+// Package Node contains node logic.
 package node
 
 // @todo this is a very rough implementation that needs cleanup
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -15,6 +17,7 @@ import (
 	"github.com/status-im/mvds/transport"
 )
 
+// Mode represents the synchronization mode.
 type Mode int
 
 const (
@@ -24,7 +27,11 @@ const (
 
 type calculateNextEpoch func(count uint64, epoch uint64) uint64
 
+// Node represents an MVDS node, it runs all the logic like sending and receiving protocol messages.
 type Node struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	store     store.MessageStore
 	transport transport.Transport
 
@@ -42,6 +49,7 @@ type Node struct {
 	mode  Mode
 }
 
+// NewNode returns a new node.
 func NewNode(
 	ms store.MessageStore,
 	st transport.Transport,
@@ -51,9 +59,12 @@ func NewNode(
 	id state.PeerID,
 	mode Mode,
 ) *Node {
+  ctx, cancel := context.WithCancel(context.Background())
 	e := epoch.Epoch(currentEpoch)
 
 	return &Node{
+		ctx:       ctx,
+		cancel:    cancel,
 		store:     ms,
 		transport: st,
 		syncState: ss,
@@ -66,24 +77,41 @@ func NewNode(
 	}
 }
 
-// Run listens for new messages received by the node and sends out those required every epoch.
-func (n *Node) Run() {
+// Start listens for new messages received by the node and sends out those required every epoch.
+func (n *Node) Start() {
 	go func() {
 		for {
-			p := n.transport.Watch()
-			go n.onPayload(p.Group, p.Sender, p.Payload)
+			select {
+			case <-n.ctx.Done():
+				log.Print("Watch stopped")
+				return
+			default:
+				p := n.transport.Watch()
+				go n.onPayload(p.Group, p.Sender, p.Payload)
+			}
 		}
 	}()
 
 	go func() {
 		for {
-			log.Printf("Node: %x Epoch: %d", n.ID[:4], n.epoch.Current())
-			time.Sleep(1 * time.Second)
+			select {
+			case <-n.ctx.Done():
+				log.Print("Epoch processing stopped")
+				return
+			default:
+				log.Printf("Node: %x Epoch: %d", n.ID[:4], n.epoch)
+				time.Sleep(1 * time.Second)
 
-			n.sendMessages()
-			n.epoch.Increment()
+				n.sendMessages()
+			  n.epoch.Increment()
+			}
 		}
 	}()
+}
+
+// Stop message reading and epoch processing
+func (n *Node) Stop() {
+	n.cancel()
 }
 
 // AppendMessage sends a message to a given group.
@@ -136,7 +164,7 @@ func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID,
 	return id, nil
 }
 
-// AddPeer adds a peer to a specific group making it a recipient of messages
+// AddPeer adds a peer to a specific group making it a recipient of messages.
 func (n *Node) AddPeer(group state.GroupID, id state.PeerID) {
 	if _, ok := n.peers[group]; !ok {
 		n.peers[group] = make([]state.PeerID, 0)
@@ -145,6 +173,7 @@ func (n *Node) AddPeer(group state.GroupID, id state.PeerID) {
 	n.peers[group] = append(n.peers[group], id)
 }
 
+// IsPeerInGroup checks whether a peer is in the specified group.
 func (n Node) IsPeerInGroup(g state.GroupID, p state.PeerID) bool {
 	for _, peer := range n.peers[g] {
 		if bytes.Equal(peer[:], p[:]) {
@@ -299,6 +328,9 @@ func (n *Node) onMessage(group state.GroupID, sender state.PeerID, msg protobuf.
 			s := state.State{}
 			s.SendEpoch = n.epoch.Current() + 1
 			n.syncState.Set(group, id, peer, s)
+			if err != nil {
+				log.Printf("error while setting sync state %s", err.Error())
+			}
 		}
 	}()
 
