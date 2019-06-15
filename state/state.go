@@ -6,6 +6,7 @@ type MessageType int
 const (
 	OFFER   MessageType = iota
 	REQUEST
+	MESSAGE
 )
 
 type State struct {
