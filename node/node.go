@@ -145,8 +145,6 @@ func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID,
 
 			if n.mode == BATCH {
 				n.insertSyncState(group, id, p, state.MESSAGE)
-
-				log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID[:4], p[:4], id[:4])
 			}
 		}
 	}()
@@ -188,6 +186,7 @@ func (n *Node) sendMessages() {
 			n.payloads.AddOffers(g, p, m[:])
 		case state.REQUEST:
 			n.payloads.AddRequests(g, p, m[:])
+			log.Printf("[%x] sending REQUEST (%x -> %x): %x\n", g[:4], n.ID[:4], p[:4], m[:4])
 		case state.MESSAGE:
 			msg, err := n.store.Get(m)
 			if err != nil {
@@ -196,6 +195,7 @@ func (n *Node) sendMessages() {
 			}
 
 			n.payloads.AddMessages(g, p, &msg)
+			log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", g[:4], n.ID[:4], p[:4], m[:4])
 		}
 
 		return n.updateSendEpoch(s)
@@ -243,8 +243,6 @@ func (n *Node) onOffer(group state.GroupID, sender state.PeerID, msg protobuf.Of
 		}
 
 		n.insertSyncState(group, id, sender, state.REQUEST)
-
-		log.Printf("[%x] sending REQUEST (%x -> %x): %x\n", group[:4], n.ID[:4], sender[:4], id[:4])
 	}
 }
 
@@ -264,8 +262,6 @@ func (n *Node) onRequest(group state.GroupID, sender state.PeerID, msg protobuf.
 		}
 
 		n.insertSyncState(group, id, sender, state.MESSAGE)
-
-		log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID[:4], sender[:4], id[:4])
 	}
 }
 
