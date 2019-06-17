@@ -139,13 +139,12 @@ func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID,
 				continue
 			}
 
-			if n.mode == INTERACTIVE {
-				n.insertSyncState(group, id, p, state.OFFER)
+			t := state.OFFER
+			if n.mode == BATCH {
+				t = state.MESSAGE
 			}
 
-			if n.mode == BATCH {
-				n.insertSyncState(group, id, p, state.MESSAGE)
-			}
+			n.insertSyncState(group, id, p, t)
 		}
 	}()
 
