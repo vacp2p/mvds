@@ -145,7 +145,6 @@ func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID,
 
 			if n.mode == BATCH {
 				n.insertSyncState(group, id, p, state.MESSAGE)
-				n.payloads.AddMessages(group, p, &m)
 
 				log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", group[:4], n.ID[:4], p[:4], id[:4])
 			}
