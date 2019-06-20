@@ -214,16 +214,16 @@ func (n *Node) sendMessages() {
 }
 
 func (n *Node) onPayload(group state.GroupID, sender state.PeerID, payload protobuf.Payload) {
-	if payload.Ack != nil {
-		n.onAck(group, sender, *payload.Ack)
+	if len(payload.Acks) > 0 {
+		n.onAck(group, sender, payload.Acks)
 	}
 
-	if payload.Request != nil {
-		n.onRequest(group, sender, *payload.Request)
+	if len(payload.Requests) > 0 {
+		n.onRequest(group, sender, payload.Requests)
 	}
 
-	if payload.Offer != nil {
-		n.onOffer(group, sender, *payload.Offer)
+	if len(payload.Offers) > 0 {
+		n.onOffer(group, sender, payload.Offers)
 	}
 
 	if payload.Messages != nil {
@@ -231,8 +231,8 @@ func (n *Node) onPayload(group state.GroupID, sender state.PeerID, payload proto
 	}
 }
 
-func (n *Node) onOffer(group state.GroupID, sender state.PeerID, msg protobuf.Offer) {
-	for _, raw := range msg.Ids {
+func (n *Node) onOffer(group state.GroupID, sender state.PeerID, offers [][]byte) {
+	for _, raw := range offers {
 		id := toMessageID(raw)
 		log.Printf("[%x] OFFER (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
@@ -245,8 +245,8 @@ func (n *Node) onOffer(group state.GroupID, sender state.PeerID, msg protobuf.Of
 	}
 }
 
-func (n *Node) onRequest(group state.GroupID, sender state.PeerID, msg protobuf.Request) {
-	for _, raw := range msg.Ids {
+func (n *Node) onRequest(group state.GroupID, sender state.PeerID, requests [][]byte) {
+	for _, raw := range requests {
 		id := toMessageID(raw)
 		log.Printf("[%x] REQUEST (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
@@ -264,8 +264,8 @@ func (n *Node) onRequest(group state.GroupID, sender state.PeerID, msg protobuf.
 	}
 }
 
-func (n *Node) onAck(group state.GroupID, sender state.PeerID, msg protobuf.Ack) {
-	for _, raw := range msg.Ids {
+func (n *Node) onAck(group state.GroupID, sender state.PeerID, acks [][]byte) {
+	for _, raw := range acks {
 		id := toMessageID(raw)
 
 		err := n.syncState.Remove(group, id, sender)
