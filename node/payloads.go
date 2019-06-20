@@ -26,10 +26,10 @@ func (p *payloads) AddOffers(group state.GroupID, peer state.PeerID, offers ...[
 
 	payload := p.get(group, peer)
 	if payload.Offer == nil {
-		payload.Offer = &protobuf.Offer{Id: make([][]byte, 0)}
+		payload.Offer = &protobuf.Offer{Ids: make([][]byte, 0)}
 	}
 
-	payload.Offer.Id = append(payload.Offer.Id, offers...)
+	payload.Offer.Ids = append(payload.Offer.Ids, offers...)
 
 	p.set(group, peer, payload)
 }
@@ -40,10 +40,10 @@ func (p *payloads) AddAcks(group state.GroupID, peer state.PeerID, acks ...[]byt
 
 	payload := p.get(group, peer)
 	if payload.Ack == nil {
-		payload.Ack = &protobuf.Ack{Id: make([][]byte, 0)}
+		payload.Ack = &protobuf.Ack{Ids: make([][]byte, 0)}
 	}
 
-	payload.Ack.Id = append(payload.Ack.Id, acks...)
+	payload.Ack.Ids = append(payload.Ack.Ids, acks...)
 
 	p.set(group, peer, payload)
 }
@@ -54,10 +54,10 @@ func (p *payloads) AddRequests(group state.GroupID, peer state.PeerID, request .
 
 	payload := p.get(group, peer)
 	if payload.Request == nil {
-		payload.Request = &protobuf.Request{Id: make([][]byte, 0)}
+		payload.Request = &protobuf.Request{Ids: make([][]byte, 0)}
 	}
 
-	payload.Request.Id = append(payload.Request.Id, request...)
+	payload.Request.Ids = append(payload.Request.Ids, request...)
 
 	p.set(group, peer, payload)
 }

@@ -232,7 +232,7 @@ func (n *Node) onPayload(group state.GroupID, sender state.PeerID, payload proto
 }
 
 func (n *Node) onOffer(group state.GroupID, sender state.PeerID, msg protobuf.Offer) {
-	for _, raw := range msg.Id {
+	for _, raw := range msg.Ids {
 		id := toMessageID(raw)
 		log.Printf("[%x] OFFER (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
@@ -246,7 +246,7 @@ func (n *Node) onOffer(group state.GroupID, sender state.PeerID, msg protobuf.Of
 }
 
 func (n *Node) onRequest(group state.GroupID, sender state.PeerID, msg protobuf.Request) {
-	for _, raw := range msg.Id {
+	for _, raw := range msg.Ids {
 		id := toMessageID(raw)
 		log.Printf("[%x] REQUEST (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
@@ -265,7 +265,7 @@ func (n *Node) onRequest(group state.GroupID, sender state.PeerID, msg protobuf.
 }
 
 func (n *Node) onAck(group state.GroupID, sender state.PeerID, msg protobuf.Ack) {
-	for _, raw := range msg.Id {
+	for _, raw := range msg.Ids {
 		id := toMessageID(raw)
 
 		err := n.syncState.Remove(group, id, sender)
