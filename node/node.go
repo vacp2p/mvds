@@ -324,7 +324,7 @@ func (n *Node) onMessage(group state.GroupID, sender state.PeerID, msg protobuf.
 	return nil
 }
 
-func (n *Node) insertSyncState(group state.GroupID, id state.MessageID, p state.PeerID, t state.MessageType) {
+func (n *Node) insertSyncState(group state.GroupID, id state.MessageID, p state.PeerID, t state.RecordType) {
 	s := state.State{
 		Type: t,
 		SendEpoch: n.epoch + 1,
