@@ -214,21 +214,10 @@ func (n *Node) sendMessages() {
 }
 
 func (n *Node) onPayload(group state.GroupID, sender state.PeerID, payload protobuf.Payload) {
-	if len(payload.Acks) > 0 {
-		n.onAck(group, sender, payload.Acks)
-	}
-
-	if len(payload.Requests) > 0 {
-		n.onRequest(group, sender, payload.Requests)
-	}
-
-	if len(payload.Offers) > 0 {
-		n.onOffer(group, sender, payload.Offers)
-	}
-
-	if payload.Messages != nil {
-		n.payloads.AddAcks(group, sender, n.onMessages(group, sender, payload.Messages)...)
-	}
+	n.onAck(group, sender, payload.Acks)
+	n.onRequest(group, sender, payload.Requests)
+	n.onOffer(group, sender, payload.Offers)
+	n.payloads.AddAcks(group, sender, n.onMessages(group, sender, payload.Messages)...)
 }
 
 func (n *Node) onOffer(group state.GroupID, sender state.PeerID, offers [][]byte) {
