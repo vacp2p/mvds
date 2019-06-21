@@ -214,6 +214,7 @@ func (n *Node) sendMessages() {
 }
 
 func (n *Node) onPayload(group state.GroupID, sender state.PeerID, payload protobuf.Payload) {
+	// Acks, Requests and Offers are all arrays of bytes as protobuf doesn't allow type aliases otherwise arrays of messageIDs would be nicer.
 	n.onAck(group, sender, payload.Acks)
 	n.onRequest(group, sender, payload.Requests)
 	n.onOffer(group, sender, payload.Offers)
