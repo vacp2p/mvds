@@ -6,7 +6,7 @@
 https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/68747470733a2f2f676f646f632e6f72672f6769746875622e636f6d2f676f6c616e672f6764646f3f7374617475732e737667
 )](https://godoc.org/github.com/status-im/mvds) [![Go Report Card](https://goreportcard.com/badge/github.com/status-im/mvds)](https://goreportcard.com/report/github.com/status-im/mvds)
 
-Experimental implementation of the [minimal viable data sync protocol specification](https://notes.status.im/bZHk_BNkSAe8-TY7DxdNEg?view).
+Experimental implementation of the [minimal viable data sync protocol specification](https://github.com/status-im/bigbrother-specs/blob/master/data_sync/mvds.md).
 
 ## Usage
 
