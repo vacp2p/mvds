@@ -121,7 +121,7 @@ func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID,
 		Body:      data,
 	}
 
-	id := state.ID(m)
+	id := m.ID()
 
 	peers, ok := n.peers[group]
 	if !ok {
@@ -278,7 +278,7 @@ func (n *Node) onMessages(group state.GroupID, sender state.PeerID, messages []*
 			continue
 		}
 
-		id := state.ID(*m)
+		id := m.ID()
 		log.Printf("[%x] sending ACK (%x -> %x): %x\n", group[:4], n.ID[:4], sender[:4], id[:4])
 		a = append(a, id[:])
 	}
@@ -287,7 +287,7 @@ func (n *Node) onMessages(group state.GroupID, sender state.PeerID, messages []*
 }
 
 func (n *Node) onMessage(group state.GroupID, sender state.PeerID, msg protobuf.Message) error {
-	id := state.ID(msg)
+	id := msg.ID()
 	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
 
 	err := n.syncState.Remove(group, id, sender)
