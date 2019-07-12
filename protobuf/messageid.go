@@ -18,5 +18,3 @@ func (m Message) ID() state.MessageID {
 
 	return sha256.Sum256(b)
 }
-
-
