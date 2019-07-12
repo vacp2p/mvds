@@ -1,17 +1,14 @@
-package state
+package protobuf
 
 import (
 	"crypto/sha256"
 	"encoding/binary"
 
-	"github.com/status-im/mvds/protobuf"
+	"github.com/status-im/mvds/state"
 )
 
-type MessageID [32]byte
-type GroupID [32]byte
-
 // ID creates the MessageID for a Message
-func ID(m protobuf.Message) MessageID {
+func (m Message) ID() state.MessageID {
 	t := make([]byte, 8)
 	binary.LittleEndian.PutUint64(t, uint64(m.Timestamp))
 
@@ -21,3 +18,5 @@ func ID(m protobuf.Message) MessageID {
 
 	return sha256.Sum256(b)
 }
+
+

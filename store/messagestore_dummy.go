@@ -39,6 +39,6 @@ func (ds *DummyStore) Get(id state.MessageID) (protobuf.Message, error) {
 func (ds *DummyStore) Add(message protobuf.Message) error {
 	ds.Lock()
 	defer ds.Unlock()
-	ds.ms[state.ID(message)] = message
+	ds.ms[message.ID()] = message
 	return nil
 }
