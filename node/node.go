@@ -154,6 +154,26 @@ func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID,
 	return id, nil
 }
 
+// RequestMessage adds a REQUEST record to the next payload for a given message ID.
+func (n *Node) RequestMessage(group state.GroupID, id state.MessageID) error {
+	peers, ok := n.peers[group]
+	if !ok {
+		return fmt.Errorf("trying to request from an unknown group %x", group[:4])
+	}
+
+	go func() {
+		for _, p := range peers {
+			if !n.IsPeerInGroup(group, p) {
+				continue
+			}
+
+			n.insertSyncState(group, id, p, state.REQUEST)
+		}
+	}()
+
+	return nil
+}
+
 // AddPeer adds a peer to a specific group making it a recipient of messages.
 func (n *Node) AddPeer(group state.GroupID, id state.PeerID) {
 	if _, ok := n.peers[group]; !ok {
