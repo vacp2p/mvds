@@ -60,7 +60,6 @@ func NewNode(
 	currentEpoch int64,
 	id state.PeerID,
 	mode Mode,
-	subscription chan<- protobuf.Message,
 ) *Node {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -76,7 +75,6 @@ func NewNode(
 		ID:           id,
 		epoch:        currentEpoch,
 		mode:         mode,
-		subscription: subscription,
 	}
 }
 
@@ -115,6 +113,11 @@ func (n *Node) Start() {
 // Stop message reading and epoch processing
 func (n *Node) Stop() {
 	n.cancel()
+}
+
+// Subscribe subscribes to incoming messages.
+func (n *Node) Subscribe(sub chan <-protobuf.Message) {
+	n.subscription = sub
 }
 
 // AppendMessage sends a message to a given group.
@@ -329,7 +332,9 @@ func (n *Node) onMessage(group state.GroupID, sender state.PeerID, msg protobuf.
 		}
 	}()
 
-	n.subscription <- msg
+	if n.subscription != nil {
+		n.subscription <- msg
+	}
 
 	err = n.store.Add(msg)
 	if err != nil {
