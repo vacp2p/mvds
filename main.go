@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/status-im/mvds/node"
+	"github.com/status-im/mvds/protobuf"
 	"github.com/status-im/mvds/state"
 	"github.com/status-im/mvds/store"
 	"github.com/status-im/mvds/transport"
@@ -115,6 +116,7 @@ func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) 
 		0,
 		id,
 		mode,
+		make(chan protobuf.Message),
 	)
 }
 
