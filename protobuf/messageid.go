@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 
-	"github.com/status-im/mvds/state"
+	"github.com/vacp2p/mvds/state"
 )
 
 // ID creates the MessageID for a Message

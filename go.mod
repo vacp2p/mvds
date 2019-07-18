@@ -1,4 +1,4 @@
-module github.com/status-im/mvds
+module github.com/vacp2p/mvds
 
 go 1.12
 

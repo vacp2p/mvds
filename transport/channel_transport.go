@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/status-im/mvds/protobuf"
-	"github.com/status-im/mvds/state"
+	"github.com/vacp2p/mvds/protobuf"
+	"github.com/vacp2p/mvds/state"
 )
 
 // ChannelTransport implements a basic MVDS transport using channels for basic testing purposes.

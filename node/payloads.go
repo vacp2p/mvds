@@ -3,8 +3,8 @@ package node
 import (
 	"sync"
 
-	"github.com/status-im/mvds/protobuf"
-	"github.com/status-im/mvds/state"
+	"github.com/vacp2p/mvds/protobuf"
+	"github.com/vacp2p/mvds/state"
 )
 
 type payloads struct {
