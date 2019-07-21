@@ -7,7 +7,7 @@ import (
 )
 
 type MessageStore interface {
-	Has(id state.MessageID) bool
-	Get(id state.MessageID) (protobuf.Message, error)
-	Add(message protobuf.Message) error
+	Has(id state.MessageID) (bool, error)
+	Get(id state.MessageID) (*protobuf.Message, error)
+	Add(message *protobuf.Message) error
 }

@@ -10,33 +10,34 @@ import (
 
 type DummyStore struct {
 	sync.Mutex
-	ms map[state.MessageID]protobuf.Message
+	ms map[state.MessageID]*protobuf.Message
 }
 
 func NewDummyStore() DummyStore {
-	return DummyStore{ms: make(map[state.MessageID]protobuf.Message)}
+	return DummyStore{ms: make(map[state.MessageID]*protobuf.Message)}
 }
 
-func (ds *DummyStore) Has(id state.MessageID) bool {
+func (ds *DummyStore) Has(id state.MessageID) (bool, error) {
 	ds.Lock()
 	defer ds.Unlock()
 
-	_, ok := ds.ms[id]; return ok
+	_, ok := ds.ms[id]
+	return ok, nil
 }
 
-func (ds *DummyStore) Get(id state.MessageID) (protobuf.Message, error) {
+func (ds *DummyStore) Get(id state.MessageID) (*protobuf.Message, error) {
 	ds.Lock()
 	defer ds.Unlock()
 
 	m, ok := ds.ms[id]
 	if !ok {
-		return protobuf.Message{}, errors.New("message does not exist")
+		return nil, errors.New("message does not exist")
 	}
 
 	return m, nil
 }
 
-func (ds *DummyStore) Add(message protobuf.Message) error {
+func (ds *DummyStore) Add(message *protobuf.Message) error {
 	ds.Lock()
 	defer ds.Unlock()
 	ds.ms[message.ID()] = message

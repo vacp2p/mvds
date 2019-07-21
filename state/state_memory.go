@@ -7,61 +7,54 @@ import (
 type memorySyncState struct {
 	sync.Mutex
 
-	state map[GroupID]map[MessageID]map[PeerID]State
+	state []State
 }
 
 func NewSyncState() *memorySyncState {
-	return &memorySyncState{
-		state: make(map[GroupID]map[MessageID]map[PeerID]State),
-	}
+	return &memorySyncState{}
 }
 
-func (s *memorySyncState) Get(group GroupID, id MessageID, peer PeerID) (State, error) {
+func (s *memorySyncState) Add(newState State) error {
 	s.Lock()
 	defer s.Unlock()
 
-	state, _ := s.state[group][id][peer]
-	return state, nil
-}
+	s.state = append(s.state, newState)
 
-func (s *memorySyncState) Set(group GroupID, id MessageID, peer PeerID, newState State) error {
-	s.Lock()
-	defer s.Unlock()
-
-	if _, ok := s.state[group]; !ok {
-		s.state[group] = make(map[MessageID]map[PeerID]State)
-	}
-
-	if _, ok := s.state[group][id]; !ok {
-		s.state[group][id] = make(map[PeerID]State)
-	}
-
-	s.state[group][id][peer] = newState
 	return nil
 }
 
-func (s *memorySyncState) Remove(group GroupID, id MessageID, peer PeerID) error {
+func (s *memorySyncState) Remove(id MessageID, peer PeerID) error {
 	s.Lock()
 	defer s.Unlock()
+	var newState []State
 
-	delete(s.state[group][id], peer)
-	return nil
-}
-
-func (s *memorySyncState) Map(epoch int64, process func(GroupID, MessageID, PeerID, State) State) error {
-	s.Lock()
-	defer s.Unlock()
-
-	for group, syncstate := range s.state {
-		for id, peers := range syncstate {
-			for peer, state := range peers {
-				if state.SendEpoch > epoch {
-					continue
-				}
-
-				s.state[group][id][peer] = process(group, id, peer, state)
-			}
+	for _, state := range s.state {
+		if state.MessageID != id || state.PeerID != peer {
+			newState = append(newState, state)
 		}
+	}
+
+	s.state = newState
+
+	return nil
+}
+
+func (s *memorySyncState) All() ([]State, error) {
+	s.Lock()
+	defer s.Unlock()
+	return s.state, nil
+}
+
+func (s *memorySyncState) Map(epoch int64, process func(State) State) error {
+	s.Lock()
+	defer s.Unlock()
+
+	for i, state := range s.state {
+		if state.SendEpoch > epoch {
+			continue
+		}
+
+		s.state[i] = process(state)
 	}
 
 	return nil

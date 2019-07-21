@@ -4,13 +4,13 @@ package node
 // @todo this is a very rough implementation that needs cleanup
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
 	"sync/atomic"
 	"time"
 
+	"github.com/vacp2p/mvds/peers"
 	"github.com/vacp2p/mvds/protobuf"
 	"github.com/vacp2p/mvds/state"
 	"github.com/vacp2p/mvds/store"
@@ -38,7 +38,7 @@ type Node struct {
 
 	syncState state.SyncState
 
-	peers map[state.GroupID][]state.PeerID
+	peers peers.Persistence
 
 	payloads payloads
 
@@ -48,8 +48,6 @@ type Node struct {
 
 	epoch int64
 	mode  Mode
-
-	subscription chan<- protobuf.Message
 }
 
 // NewNode returns a new node.
@@ -61,26 +59,27 @@ func NewNode(
 	currentEpoch int64,
 	id state.PeerID,
 	mode Mode,
+	pp peers.Persistence,
 ) *Node {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Node{
-		ctx:          ctx,
-		cancel:       cancel,
-		store:        ms,
-		transport:    st,
-		syncState:    ss,
-		peers:        make(map[state.GroupID][]state.PeerID),
-		payloads:     newPayloads(),
-		nextEpoch:    nextEpoch,
-		ID:           id,
-		epoch:        currentEpoch,
-		mode:         mode,
+		ctx:       ctx,
+		cancel:    cancel,
+		store:     ms,
+		transport: st,
+		syncState: ss,
+		peers:     pp,
+		payloads:  newPayloads(),
+		nextEpoch: nextEpoch,
+		ID:        id,
+		epoch:     currentEpoch,
+		mode:      mode,
 	}
 }
 
 // Start listens for new messages received by the node and sends out those required every epoch.
-func (n *Node) Start() {
+func (n *Node) Start(duration time.Duration) {
 	go func() {
 		for {
 			select {
@@ -89,7 +88,7 @@ func (n *Node) Start() {
 				return
 			default:
 				p := n.transport.Watch()
-				go n.onPayload(p.Group, p.Sender, p.Payload)
+				go n.onPayload(p.Sender, p.Payload)
 			}
 		}
 	}()
@@ -102,9 +101,11 @@ func (n *Node) Start() {
 				return
 			default:
 				log.Printf("Node: %x Epoch: %d", n.ID[:4], n.epoch)
-				time.Sleep(1 * time.Second)
-
-				n.sendMessages()
+				time.Sleep(duration)
+				err := n.sendMessages()
+				if err != nil {
+					log.Printf("Error sending messages: %+v\n", err)
+				}
 				atomic.AddInt64(&n.epoch, 1)
 			}
 		}
@@ -113,50 +114,40 @@ func (n *Node) Start() {
 
 // Stop message reading and epoch processing
 func (n *Node) Stop() {
+	log.Print("Stopping node")
 	n.cancel()
 }
 
-// Subscribe subscribes to incoming messages.
-func (n *Node) Subscribe(sub chan <-protobuf.Message) {
-	n.subscription = sub
-}
-
 // AppendMessage sends a message to a given group.
-func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID, error) {
+func (n *Node) AppendMessage(groupID state.GroupID, data []byte) (state.MessageID, error) {
 	m := protobuf.Message{
-		GroupId:   group[:],
+		GroupId:   groupID[:],
 		Timestamp: time.Now().Unix(),
 		Body:      data,
 	}
 
 	id := m.ID()
 
-	peers, ok := n.peers[group]
-	if !ok {
-		return state.MessageID{}, fmt.Errorf("trying to send to unknown group %x", group[:4])
+	peers, err := n.peers.GetByGroupID(groupID)
+	if err != nil {
+		return state.MessageID{}, fmt.Errorf("trying to send to unknown group %x", groupID[:4])
 	}
 
-	err := n.store.Add(m)
+	err = n.store.Add(&m)
 	if err != nil {
 		return state.MessageID{}, err
 	}
 
-	go func() {
-		for _, p := range peers {
-			if !n.IsPeerInGroup(group, p) {
-				continue
-			}
-
-			t := state.OFFER
-			if n.mode == BATCH {
-				t = state.MESSAGE
-			}
-
-			n.insertSyncState(group, id, p, t)
+	for _, p := range peers {
+		t := state.OFFER
+		if n.mode == BATCH {
+			t = state.MESSAGE
 		}
-	}()
 
-	log.Printf("[%x] node %x sending %x\n", group[:4], n.ID[:4], id[:4])
+		n.insertSyncState(&groupID, id, p, t)
+	}
+
+	log.Printf("[%x] node %x sending %x\n", groupID[:4], n.ID[:4], id[:4])
 	// @todo think about a way to insta trigger send messages when send was selected, we don't wanna wait for ticks here
 
 	return id, nil
@@ -164,64 +155,66 @@ func (n *Node) AppendMessage(group state.GroupID, data []byte) (state.MessageID,
 
 // RequestMessage adds a REQUEST record to the next payload for a given message ID.
 func (n *Node) RequestMessage(group state.GroupID, id state.MessageID) error {
-	peers, ok := n.peers[group]
-	if !ok {
+	peers, err := n.peers.GetByGroupID(group)
+	if err != nil {
 		return fmt.Errorf("trying to request from an unknown group %x", group[:4])
 	}
 
-	go func() {
-		for _, p := range peers {
-			if !n.IsPeerInGroup(group, p) {
-				continue
-			}
-
-			n.insertSyncState(group, id, p, state.REQUEST)
+	for _, p := range peers {
+		exist, err := n.IsPeerInGroup(group, p)
+		if err != nil {
+			return err
 		}
-	}()
+
+		if exist {
+			continue
+		}
+
+		n.insertSyncState(&group, id, p, state.REQUEST)
+	}
 
 	return nil
 }
 
 // AddPeer adds a peer to a specific group making it a recipient of messages.
-func (n *Node) AddPeer(group state.GroupID, id state.PeerID) {
-	if _, ok := n.peers[group]; !ok {
-		n.peers[group] = make([]state.PeerID, 0)
-	}
-
-	n.peers[group] = append(n.peers[group], id)
+func (n *Node) AddPeer(group state.GroupID, id state.PeerID) error {
+	return n.peers.Add(group, id)
 }
 
 // IsPeerInGroup checks whether a peer is in the specified group.
-func (n Node) IsPeerInGroup(g state.GroupID, p state.PeerID) bool {
-	for _, peer := range n.peers[g] {
-		if bytes.Equal(peer[:], p[:]) {
-			return true
-		}
-	}
-
-	return false
+func (n *Node) IsPeerInGroup(g state.GroupID, p state.PeerID) (bool, error) {
+	return n.peers.Exists(g, p)
 }
 
-func (n *Node) sendMessages() {
-	err := n.syncState.Map(n.epoch, func(g state.GroupID, m state.MessageID, p state.PeerID, s state.State) state.State {
-		if !n.IsPeerInGroup(g, p) {
-			return s
-		}
-
+func (n *Node) sendMessages() error {
+	err := n.syncState.Map(n.epoch, func(s state.State) state.State {
+		m := s.MessageID
+		p := s.PeerID
 		switch s.Type {
 		case state.OFFER:
-			n.payloads.AddOffers(g, p, m[:])
+			n.payloads.AddOffers(p, m[:])
 		case state.REQUEST:
-			n.payloads.AddRequests(g, p, m[:])
-			log.Printf("[%x] sending REQUEST (%x -> %x): %x\n", g[:4], n.ID[:4], p[:4], m[:4])
+			n.payloads.AddRequests(p, m[:])
+			log.Printf("sending REQUEST (%x -> %x): %x\n", n.ID[:4], p[:4], m[:4])
 		case state.MESSAGE:
+			g := *s.GroupID
+			//  TODO: Handle errors
+			exist, err := n.IsPeerInGroup(g, p)
+			if err != nil {
+				return s
+			}
+
+			if !exist {
+				return s
+			}
+
 			msg, err := n.store.Get(m)
 			if err != nil {
 				log.Printf("failed to retreive message %x %s", m[:4], err.Error())
 				return s
 			}
 
-			n.payloads.AddMessages(g, p, &msg)
+			n.payloads.AddMessages(p, msg)
 			log.Printf("[%x] sending MESSAGE (%x -> %x): %x\n", g[:4], n.ID[:4], p[:4], m[:4])
 		}
 
@@ -230,135 +223,169 @@ func (n *Node) sendMessages() {
 
 	if err != nil {
 		log.Printf("error while mapping sync state: %s", err.Error())
+		return err
 	}
 
-	n.payloads.MapAndClear(func(id state.GroupID, peer state.PeerID, payload protobuf.Payload) {
-		err := n.transport.Send(id, n.ID, peer, payload)
+	return n.payloads.MapAndClear(func(peer state.PeerID, payload protobuf.Payload) error {
+		err := n.transport.Send(n.ID, peer, payload)
 		if err != nil {
 			log.Printf("error sending message: %s", err.Error())
-			//	@todo
+			return err
 		}
+		return nil
 	})
+
 }
 
-func (n *Node) onPayload(group state.GroupID, sender state.PeerID, payload protobuf.Payload) {
+func (n *Node) onPayload(sender state.PeerID, payload protobuf.Payload) {
 	// Acks, Requests and Offers are all arrays of bytes as protobuf doesn't allow type aliases otherwise arrays of messageIDs would be nicer.
-	n.onAck(group, sender, payload.Acks)
-	n.onRequest(group, sender, payload.Requests)
-	n.onOffer(group, sender, payload.Offers)
-	n.payloads.AddAcks(group, sender, n.onMessages(group, sender, payload.Messages)...)
+	if err := n.onAck(sender, payload.Acks); err != nil {
+		log.Printf("error processing acks: %s", err.Error())
+	}
+	if err := n.onRequest(sender, payload.Requests); err != nil {
+		log.Printf("error processing requests: %s", err.Error())
+	}
+	if err := n.onOffer(sender, payload.Offers); err != nil {
+		log.Printf("error processing offers: %s", err.Error())
+	}
+	messageIds := n.onMessages(sender, payload.Messages)
+	n.payloads.AddAcks(sender, messageIds)
 }
 
-func (n *Node) onOffer(group state.GroupID, sender state.PeerID, offers [][]byte) {
+func (n *Node) onOffer(sender state.PeerID, offers [][]byte) error {
 	for _, raw := range offers {
 		id := toMessageID(raw)
-		log.Printf("[%x] OFFER (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
+		log.Printf("OFFER (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
 
+		exist, err := n.store.Has(id)
 		// @todo maybe ack?
-		if n.store.Has(id) {
+		if err != nil {
+			return err
+		}
+
+		if exist {
 			continue
 		}
 
-		n.insertSyncState(group, id, sender, state.REQUEST)
+		n.insertSyncState(nil, id, sender, state.REQUEST)
 	}
+	return nil
 }
 
-func (n *Node) onRequest(group state.GroupID, sender state.PeerID, requests [][]byte) {
+func (n *Node) onRequest(sender state.PeerID, requests [][]byte) error {
 	for _, raw := range requests {
 		id := toMessageID(raw)
-		log.Printf("[%x] REQUEST (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
+		log.Printf("REQUEST (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
 
-		if !n.IsPeerInGroup(group, sender) {
-			log.Printf("[%x] peer %x is not in group", group[:4], sender[:4])
-			continue
+		message, err := n.store.Get(id)
+		if err != nil {
+			return err
 		}
 
-		if !n.store.Has(id) {
+		if message == nil {
 			log.Printf("message %x does not exist", id[:4])
 			continue
 		}
 
-		n.insertSyncState(group, id, sender, state.MESSAGE)
-	}
-}
+		groupID := toGroupID(message.GroupId)
 
-func (n *Node) onAck(group state.GroupID, sender state.PeerID, acks [][]byte) {
-	for _, raw := range acks {
-		id := toMessageID(raw)
-
-		err := n.syncState.Remove(group, id, sender)
+		exist, err := n.IsPeerInGroup(groupID, sender)
 		if err != nil {
-			log.Printf("error while removing sync state %s", err.Error())
+			return err
+		}
+
+		if !exist {
+			log.Printf("[%x] peer %x is not in group", groupID, sender[:4])
 			continue
 		}
 
-		log.Printf("[%x] ACK (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
+		n.insertSyncState(&groupID, id, sender, state.MESSAGE)
 	}
+
+	return nil
 }
 
-func (n *Node) onMessages(group state.GroupID, sender state.PeerID, messages []*protobuf.Message) [][]byte {
+func (n *Node) onAck(sender state.PeerID, acks [][]byte) error {
+	for _, ack := range acks {
+		id := toMessageID(ack)
+
+		err := n.syncState.Remove(id, sender)
+		if err != nil {
+			log.Printf("error while removing sync state %s", err.Error())
+			return err
+		}
+
+		log.Printf("ACK (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
+	}
+	return nil
+}
+
+func (n *Node) onMessages(sender state.PeerID, messages []*protobuf.Message) [][]byte {
 	a := make([][]byte, 0)
 
 	for _, m := range messages {
-		err := n.onMessage(group, sender, *m)
+		groupID := toGroupID(m.GroupId)
+		err := n.onMessage(sender, *m)
 		if err != nil {
-			// @todo
+			log.Printf("Error processing messsage: %+v\n", err)
 			continue
 		}
 
 		id := m.ID()
-		log.Printf("[%x] sending ACK (%x -> %x): %x\n", group[:4], n.ID[:4], sender[:4], id[:4])
+		log.Printf("[%x] sending ACK (%x -> %x): %x\n", groupID[:4], n.ID[:4], sender[:4], id[:4])
 		a = append(a, id[:])
 	}
 
 	return a
 }
 
-func (n *Node) onMessage(group state.GroupID, sender state.PeerID, msg protobuf.Message) error {
+func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 	id := msg.ID()
-	log.Printf("[%x] MESSAGE (%x -> %x): %x received.\n", group[:4], sender[:4], n.ID[:4], id[:4])
+	groupID := toGroupID(msg.GroupId)
+	log.Printf("MESSAGE (%x -> %x): %x received.\n", sender[:4], n.ID[:4], id[:4])
 
-	err := n.syncState.Remove(group, id, sender)
+	err := n.syncState.Remove(id, sender)
 	if err != nil {
 		return err
 	}
 
-	go func() {
-		for _, peer := range n.peers[group] {
-			if peer == sender {
-				continue
-			}
-
-			n.insertSyncState(group, id, peer, state.OFFER)
-		}
-	}()
-
-	if n.subscription != nil {
-		n.subscription <- msg
-	}
-
-	err = n.store.Add(msg)
+	err = n.store.Add(&msg)
 	if err != nil {
 		return err
 		// @todo process, should this function ever even have an error?
 	}
 
+	peers, err := n.peers.GetByGroupID(groupID)
+	if err != nil {
+		return err
+	}
+	for _, peer := range peers {
+		if peer == sender {
+			continue
+		}
+
+		n.insertSyncState(&groupID, id, peer, state.OFFER)
+	}
+
 	return nil
 }
 
-func (n *Node) insertSyncState(group state.GroupID, id state.MessageID, p state.PeerID, t state.RecordType) {
+func (n *Node) insertSyncState(groupID *state.GroupID, messageID state.MessageID, peerID state.PeerID, t state.RecordType) {
 	s := state.State{
+		GroupID:   groupID,
+		MessageID: messageID,
+		PeerID:    peerID,
 		Type:      t,
 		SendEpoch: n.epoch + 1,
 	}
 
-	err := n.syncState.Set(group, id, p, s)
+	err := n.syncState.Add(s)
 	if err != nil {
-		log.Printf("error (%s) setting sync state group: %x id: %x peer: %x", err.Error(), group[:4], id[:4], p[:4])
+		log.Printf("error (%s) setting sync state group: %x id: %x peer: %x", err.Error(), groupID, messageID, peerID)
 	}
 }
 
-func (n Node) updateSendEpoch(s state.State) state.State {
+func (n *Node) updateSendEpoch(s state.State) state.State {
 	s.SendCount += 1
 	s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
 	return s
@@ -366,6 +393,12 @@ func (n Node) updateSendEpoch(s state.State) state.State {
 
 func toMessageID(b []byte) state.MessageID {
 	var id state.MessageID
+	copy(id[:], b)
+	return id
+}
+
+func toGroupID(b []byte) state.GroupID {
+	var id state.GroupID
 	copy(id[:], b)
 	return id
 }
