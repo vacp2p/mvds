@@ -55,7 +55,7 @@ func (s *memorySyncState) Map(epoch int64, process func(GroupID, MessageID, Peer
 	for group, syncstate := range s.state {
 		for id, peers := range syncstate {
 			for peer, state := range peers {
-				if state.SendEpoch < epoch {
+				if state.SendEpoch > epoch {
 					continue
 				}
 
