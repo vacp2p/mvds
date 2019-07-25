@@ -15,11 +15,15 @@ type State struct {
 	Type      RecordType
 	SendCount uint64
 	SendEpoch int64
+	// GroupID is optional, thus nullable
+	GroupID   *GroupID
+	PeerID    PeerID
+	MessageID MessageID
 }
 
 type SyncState interface {
-	Get(group GroupID, id MessageID, peer PeerID) (State, error)
-	Set(group GroupID, id MessageID, peer PeerID, newState State) error
-	Remove(group GroupID, id MessageID, peer PeerID) error
-	Map(epoch int64, process func(GroupID, MessageID, PeerID, State) State) error
+	Add(newState State) error
+	Remove(id MessageID, peer PeerID) error
+	All() ([]State, error)
+	Map(epoch int64, process func(State) State) error
 }

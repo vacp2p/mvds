@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/vacp2p/mvds/node"
+	"github.com/vacp2p/mvds/peers"
 	"github.com/vacp2p/mvds/state"
 	"github.com/vacp2p/mvds/store"
 	"github.com/vacp2p/mvds/transport"
@@ -69,14 +70,14 @@ func main() {
 			peer := nodes[p].ID
 
 			transports[i].AddOutput(peer, input[p])
-			n.AddPeer(group, peer)
+			_ = n.AddPeer(group, peer)
 
 			log.Printf("%x sharing with %x", n.ID[:4], peer[:4])
 		}
 	}
 
 	for _, n := range nodes {
-		n.Start()
+		n.Start(1 * time.Second)
 	}
 
 	chat(group, nodes[:communicating-1]...)
@@ -115,6 +116,7 @@ func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) 
 		0,
 		id,
 		mode,
+		peers.NewMemoryPersistence(),
 	)
 }
 
@@ -137,7 +139,7 @@ func Calc(count uint64, epoch int64) int64 {
 
 func peerID() state.PeerID {
 	bytes := make([]byte, 65)
-	rand.Read(bytes)
+	_, _ = rand.Read(bytes)
 
 	id := state.PeerID{}
 	copy(id[:], bytes)
@@ -147,7 +149,7 @@ func peerID() state.PeerID {
 
 func groupId() state.GroupID {
 	bytes := make([]byte, 32)
-	rand.Read(bytes)
+	_, _ = rand.Read(bytes)
 
 	id := state.GroupID{}
 	copy(id[:], bytes)
