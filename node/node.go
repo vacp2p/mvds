@@ -1,4 +1,4 @@
-// Package Node contains node logic.
+// Package node contains node logic.
 package node
 
 // @todo this is a very rough implementation that needs cleanup
