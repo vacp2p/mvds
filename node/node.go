@@ -117,6 +117,7 @@ func (n *Node) Start(duration time.Duration) {
 // Stop message reading and epoch processing
 func (n *Node) Stop() {
 	log.Print("Stopping node")
+	close(n.subscription)
 	n.cancel()
 }
 
