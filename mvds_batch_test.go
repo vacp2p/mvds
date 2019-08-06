@@ -1,14 +1,15 @@
 package main
 
 import (
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/suite"
 	"github.com/vacp2p/mvds/node"
 	"github.com/vacp2p/mvds/peers"
 	"github.com/vacp2p/mvds/state"
 	"github.com/vacp2p/mvds/store"
 	"github.com/vacp2p/mvds/transport"
-	"testing"
-	"time"
 )
 
 func TestMVDSBatchSuite(t *testing.T) {
@@ -67,7 +68,10 @@ func (s *MVDSBatchSuite) TearDownTest() {
 }
 
 func (s *MVDSBatchSuite) TestSendClient1ToClient2() {
-	messageID, err := s.client1.AppendMessage(s.groupID, []byte("message 1"))
+	subscription := s.client2.Subscribe()
+	content := []byte("message 1")
+
+	messageID, err := s.client1.AppendMessage(s.groupID, content)
 	s.Require().NoError(err)
 
 	// Check message is in store
@@ -80,10 +84,16 @@ func (s *MVDSBatchSuite) TestSendClient1ToClient2() {
 		message1Receiver, err := s.ds2.Get(messageID)
 		return err == nil && message1Receiver != nil
 	}, 1*time.Second, 10*time.Millisecond)
+
+	message := <- subscription
+	s.Equal(message.Body, content)
 }
 
 func (s *MVDSBatchSuite) TestSendClient2ToClient1() {
-	messageID, err := s.client2.AppendMessage(s.groupID, []byte("message 1"))
+	subscription := s.client1.Subscribe()
+	content := []byte("message 1")
+
+	messageID, err := s.client2.AppendMessage(s.groupID, content)
 	s.Require().NoError(err)
 
 	// Check message is in store
@@ -96,6 +106,9 @@ func (s *MVDSBatchSuite) TestSendClient2ToClient1() {
 		message1Receiver, err := s.ds1.Get(messageID)
 		return err == nil && message1Receiver != nil
 	}, 1*time.Second, 10*time.Millisecond)
+
+	message := <- subscription
+	s.Equal(message.Body, content)
 }
 
 func (s *MVDSBatchSuite) TestAcks() {

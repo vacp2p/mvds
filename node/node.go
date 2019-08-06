@@ -48,6 +48,8 @@ type Node struct {
 
 	epoch int64
 	mode  Mode
+
+	subscription chan protobuf.Message
 }
 
 // NewNode returns a new node.
@@ -115,7 +117,19 @@ func (n *Node) Start(duration time.Duration) {
 // Stop message reading and epoch processing
 func (n *Node) Stop() {
 	log.Print("Stopping node")
+	close(n.subscription)
 	n.cancel()
+}
+
+// Subscribe subscribes to incoming messages.
+func (n *Node) Subscribe() chan protobuf.Message {
+	n.subscription = make(chan protobuf.Message)
+	return n.subscription
+}
+
+// Unsubscribe closes the listening channels
+func (n *Node) Unsubscribe() {
+	close(n.subscription)
 }
 
 // AppendMessage sends a message to a given group.
@@ -359,12 +373,17 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 	if err != nil {
 		return err
 	}
+
 	for _, peer := range peers {
 		if peer == sender {
 			continue
 		}
 
 		n.insertSyncState(&groupID, id, peer, state.OFFER)
+	}
+
+	if n.subscription != nil {
+		n.subscription <- msg
 	}
 
 	return nil
