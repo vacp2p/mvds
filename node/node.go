@@ -49,7 +49,7 @@ type Node struct {
 	epoch int64
 	mode  Mode
 
-	subscription chan<- protobuf.Message
+	subscription chan protobuf.Message
 }
 
 // NewNode returns a new node.
@@ -121,8 +121,14 @@ func (n *Node) Stop() {
 }
 
 // Subscribe subscribes to incoming messages.
-func (n *Node) Subscribe(sub chan protobuf.Message) {
-	n.subscription = sub
+func (n *Node) Subscribe() chan protobuf.Message {
+	n.subscription = make(chan protobuf.Message)
+	return n.subscription
+}
+
+// Unsubscribe closes the listening channels
+func (n *Node) Unsubscribe() {
+	close(n.subscription)
 }
 
 // AppendMessage sends a message to a given group.

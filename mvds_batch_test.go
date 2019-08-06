@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/vacp2p/mvds/node"
 	"github.com/vacp2p/mvds/peers"
-	"github.com/vacp2p/mvds/protobuf"
 	"github.com/vacp2p/mvds/state"
 	"github.com/vacp2p/mvds/store"
 	"github.com/vacp2p/mvds/transport"
@@ -69,8 +68,7 @@ func (s *MVDSBatchSuite) TearDownTest() {
 }
 
 func (s *MVDSBatchSuite) TestSendClient1ToClient2() {
-	subscription := make(chan protobuf.Message)
-	s.client2.Subscribe(subscription)
+	subscription := s.client2.Subscribe()
 	content := []byte("message 1")
 
 	messageID, err := s.client1.AppendMessage(s.groupID, content)
@@ -92,8 +90,7 @@ func (s *MVDSBatchSuite) TestSendClient1ToClient2() {
 }
 
 func (s *MVDSBatchSuite) TestSendClient2ToClient1() {
-	subscription := make(chan protobuf.Message)
-	s.client1.Subscribe(subscription)
+	subscription := s.client1.Subscribe()
 	content := []byte("message 1")
 
 	messageID, err := s.client2.AppendMessage(s.groupID, content)
