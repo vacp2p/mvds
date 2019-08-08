@@ -28,3 +28,7 @@ vendor:
 	go mod vendor
 	modvendor -copy="**/*.c **/*.h" -v
 .PHONY: vendor
+
+generate:
+	go generate ./...
+.PHONY: generate
