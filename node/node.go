@@ -117,7 +117,7 @@ func (n *Node) Start(duration time.Duration) {
 // Stop message reading and epoch processing
 func (n *Node) Stop() {
 	log.Print("Stopping node")
-	close(n.subscription)
+	n.Unsubscribe()
 	n.cancel()
 }
 
@@ -129,7 +129,10 @@ func (n *Node) Subscribe() chan protobuf.Message {
 
 // Unsubscribe closes the listening channels
 func (n *Node) Unsubscribe() {
-	close(n.subscription)
+	if n.subscription != nil {
+		close(n.subscription)
+	}
+	n.subscription = nil
 }
 
 // AppendMessage sends a message to a given group.
