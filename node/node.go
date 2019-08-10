@@ -161,7 +161,10 @@ func (n *Node) Start(duration time.Duration) {
 					log.Printf("Error sending messages: %+v\n", err)
 				}
 				atomic.AddInt64(&n.epoch, 1)
-
+				// When a persistent node is used, the epoch needs to be saved.
+				if n.epochPersistence != nil {
+					n.epochPersistence.Set(n.ID, n.epoch)
+				}
 			}
 		}
 	}()
