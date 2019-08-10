@@ -109,7 +109,7 @@ OUTER:
 func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) *node.Node {
 	ds := store.NewDummyStore()
 	return node.NewNode(
-		&ds,
+		ds,
 		transport,
 		state.NewSyncState(),
 		Calc,

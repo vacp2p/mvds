@@ -163,7 +163,9 @@ func (n *Node) Start(duration time.Duration) {
 				atomic.AddInt64(&n.epoch, 1)
 				// When a persistent node is used, the epoch needs to be saved.
 				if n.epochPersistence != nil {
-					n.epochPersistence.Set(n.ID, n.epoch)
+					if err := n.epochPersistence.Set(n.ID, n.epoch); err != nil {
+						log.Printf("Failed to persisten epoch: %v", err)
+					}
 				}
 			}
 		}
