@@ -5,6 +5,7 @@ package node
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"sync/atomic"
@@ -46,10 +47,62 @@ type Node struct {
 
 	ID state.PeerID
 
-	epoch int64
-	mode  Mode
+	epochPersistence *epochSQLitePersistence
+	epoch            int64
+	mode             Mode
 
 	subscription chan protobuf.Message
+}
+
+func NewPersistentNode(
+	db *sql.DB,
+	st transport.Transport,
+	id state.PeerID,
+	mode Mode,
+	nextEpoch CalculateNextEpoch,
+) (*Node, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	node := Node{
+		ID:               id,
+		ctx:              ctx,
+		cancel:           cancel,
+		store:            store.NewPersistentMessageStore(db),
+		transport:        st,
+		peers:            peers.NewSQLitePersistence(db),
+		payloads:         newPayloads(),
+		epochPersistence: newEpochSQLitePersistence(db),
+		nextEpoch:        nextEpoch,
+		mode:             mode,
+	}
+	if currentEpoch, err := node.epochPersistence.Get(id); err != nil {
+		return nil, err
+	} else {
+		node.epoch = currentEpoch
+	}
+	return &node, nil
+}
+
+func NewEphemeralNode(
+	id state.PeerID,
+	t transport.Transport,
+	nextEpoch CalculateNextEpoch,
+	currentEpoch int64,
+	mode Mode,
+) *Node {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &Node{
+		ID:        id,
+		ctx:       ctx,
+		cancel:    cancel,
+		store:     store.NewDummyStore(),
+		transport: t,
+		syncState: state.NewSyncState(),
+		peers:     peers.NewMemoryPersistence(),
+		payloads:  newPayloads(),
+		nextEpoch: nextEpoch,
+		epoch:     currentEpoch,
+		mode:      mode,
+	}
 }
 
 // NewNode returns a new node.
@@ -64,7 +117,6 @@ func NewNode(
 	pp peers.Persistence,
 ) *Node {
 	ctx, cancel := context.WithCancel(context.Background())
-
 	return &Node{
 		ctx:       ctx,
 		cancel:    cancel,
@@ -109,6 +161,7 @@ func (n *Node) Start(duration time.Duration) {
 					log.Printf("Error sending messages: %+v\n", err)
 				}
 				atomic.AddInt64(&n.epoch, 1)
+
 			}
 		}
 	}()
