@@ -17,6 +17,9 @@ func newEpochSQLitePersistence(db *sql.DB) *epochSQLitePersistence {
 func (p *epochSQLitePersistence) Get(nodeID state.PeerID) (epoch int64, err error) {
 	row := p.db.QueryRow(`SELECT epoch FROM mvds_epoch WHERE peer_id = ?`, nodeID[:])
 	err = row.Scan(&epoch)
+	if err == sql.ErrNoRows {
+		err = nil
+	}
 	return
 }
 

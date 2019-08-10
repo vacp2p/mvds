@@ -33,6 +33,6 @@ func TestEpochSQLitePersistence(t *testing.T) {
 	require.Equal(t, int64(2), epoch)
 
 	epoch, err = p.Get(state.PeerID{0xff})
-	require.EqualError(t, err, "sql: no rows in result set")
+	require.NoError(t, err)
 	require.Equal(t, int64(0), epoch)
 }
