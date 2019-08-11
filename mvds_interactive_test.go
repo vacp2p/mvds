@@ -1,14 +1,15 @@
 package main
 
 import (
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/suite"
 	"github.com/vacp2p/mvds/node"
 	"github.com/vacp2p/mvds/peers"
 	"github.com/vacp2p/mvds/state"
 	"github.com/vacp2p/mvds/store"
 	"github.com/vacp2p/mvds/transport"
-	"testing"
-	"time"
 )
 
 func TestMVDSInteractiveSuite(t *testing.T) {
