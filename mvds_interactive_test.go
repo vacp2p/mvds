@@ -1,14 +1,15 @@
 package main
 
 import (
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/suite"
 	"github.com/vacp2p/mvds/node"
 	"github.com/vacp2p/mvds/peers"
 	"github.com/vacp2p/mvds/state"
 	"github.com/vacp2p/mvds/store"
 	"github.com/vacp2p/mvds/transport"
-	"testing"
-	"time"
 )
 
 func TestMVDSInteractiveSuite(t *testing.T) {
@@ -75,13 +76,13 @@ func (s *MVDSInteractiveSuite) TestInteractiveMode() {
 	s.Require().NotNil(message1Sender)
 
 	// Check state is updated correctly
-	states, err := s.state1.All()
+	states, err := s.state1.All(s.client1.CurrentEpoch())
 	s.Require().NoError(err)
 	s.Require().Equal(1, len(states))
 
 	// Check we store the request
 	s.Require().Eventually(func() bool {
-		states, err := s.state2.All()
+		states, err := s.state2.All(s.client2.CurrentEpoch())
 		return err == nil && len(states) == 1 && states[0].Type == state.REQUEST
 	}, 1*time.Second, 10*time.Millisecond, "An request is stored in the state")
 
@@ -93,7 +94,7 @@ func (s *MVDSInteractiveSuite) TestInteractiveMode() {
 
 	// Check state is removed
 	s.Require().Eventually(func() bool {
-		states, err := s.state1.All()
+		states, err := s.state1.All(s.client1.CurrentEpoch())
 		return err == nil && len(states) == 0
 
 	}, 1*time.Second, 10*time.Millisecond, "We clear all the state")

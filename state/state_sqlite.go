@@ -3,6 +3,11 @@ package state
 import (
 	"database/sql"
 	"errors"
+	"log"
+)
+
+var (
+	ErrStateNotFound = errors.New("state not found")
 )
 
 // Verify that SyncState interface is implemented.
@@ -49,12 +54,12 @@ func (p *sqliteSyncState) Remove(messageID MessageID, peerID PeerID) error {
 	if n, err := result.RowsAffected(); err != nil {
 		return err
 	} else if n == 0 {
-		return errors.New("state not found")
+		return ErrStateNotFound
 	}
 	return nil
 }
 
-func (p *sqliteSyncState) All() ([]State, error) {
+func (p *sqliteSyncState) All(epoch int64) ([]State, error) {
 	var result []State
 
 	rows, err := p.db.Query(`
@@ -62,7 +67,9 @@ func (p *sqliteSyncState) All() ([]State, error) {
 			type, send_count, send_epoch, group_id, peer_id, message_id 
 		FROM
 			mvds_states
-	`)
+		WHERE
+			send_epoch <= ?
+	`, epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +105,7 @@ func (p *sqliteSyncState) All() ([]State, error) {
 }
 
 func (p *sqliteSyncState) Map(epoch int64, process func(State) State) error {
-	states, err := p.All()
+	states, err := p.All(epoch)
 	if err != nil {
 		return err
 	}
@@ -106,7 +113,8 @@ func (p *sqliteSyncState) Map(epoch int64, process func(State) State) error {
 	var updated []State
 
 	for _, state := range states {
-		if state.SendEpoch > epoch {
+		if err := invariant(state.SendEpoch <= epoch, "invalid state provided to process"); err != nil {
+			log.Printf("%v", err)
 			continue
 		}
 		newState := process(state)
@@ -148,4 +156,11 @@ func updateInTx(tx *sql.Tx, state State) error {
 		state.PeerID[:],
 	)
 	return err
+}
+
+func invariant(cond bool, message string) error {
+	if !cond {
+		return errors.New(message)
+	}
+	return nil
 }

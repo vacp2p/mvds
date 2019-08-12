@@ -22,7 +22,7 @@ func TestPersistentSyncState(t *testing.T) {
 	stateWithoutGroupID := State{
 		Type:      OFFER,
 		SendCount: 1,
-		SendEpoch: 123456,
+		SendEpoch: 1,
 		GroupID:   nil,
 		PeerID:    PeerID{0x01},
 		MessageID: MessageID{0xaa},
@@ -36,7 +36,13 @@ func TestPersistentSyncState(t *testing.T) {
 	err = p.Add(stateWithGroupID)
 	require.NoError(t, err)
 
-	allStates, err := p.All()
+	// Getting states for the old epoch.
+	allStates, err := p.All(0)
+	require.NoError(t, err)
+	require.Nil(t, allStates)
+
+	// Getting states for the current epoch.
+	allStates, err = p.All(1)
 	require.NoError(t, err)
 	require.Equal(t, []State{stateWithoutGroupID, stateWithGroupID}, allStates)
 	require.Nil(t, allStates[0].GroupID)

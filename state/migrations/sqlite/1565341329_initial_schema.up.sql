@@ -7,3 +7,5 @@ CREATE TABLE mvds_states (
     message_id BLOB NOT NULL,
     PRIMARY KEY (message_id, peer_id)
 );
+
+CREATE INDEX idx_send_epoch ON mvds_states(send_epoch);

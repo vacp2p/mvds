@@ -80,6 +80,10 @@ func NewNode(
 	}
 }
 
+func (n *Node) CurrentEpoch() int64 {
+	return atomic.LoadInt64(&n.epoch)
+}
+
 // Start listens for new messages received by the node and sends out those required every epoch.
 func (n *Node) Start(duration time.Duration) {
 	go func() {
