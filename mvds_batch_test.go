@@ -119,7 +119,7 @@ func (s *MVDSBatchSuite) TestAcks() {
 	s.Require().NotNil(message1Sender)
 
 	// Check state is updated correctly
-	states, err := s.state1.All()
+	states, err := s.state1.All(s.client1.CurrentEpoch())
 	s.Require().NoError(err)
 	s.Require().Equal(1, len(states))
 
@@ -131,7 +131,7 @@ func (s *MVDSBatchSuite) TestAcks() {
 
 	// Check state is removed
 	s.Require().Eventually(func() bool {
-		states, err := s.state1.All()
+		states, err := s.state1.All(s.client1.CurrentEpoch())
 		return err == nil && len(states) == 0
 
 	}, 1*time.Second, 10*time.Millisecond)
