@@ -33,8 +33,7 @@ func (s *MVDSInteractiveSuite) SetupTest() {
 
 	in1 := make(chan transport.Packet)
 	t1 := transport.NewChannelTransport(0, in1)
-	ds1 := store.NewDummyStore()
-	s.ds1 = &ds1
+	s.ds1 = store.NewDummyStore()
 	s.state1 = state.NewSyncState()
 	s.peers1 = peers.NewMemoryPersistence()
 	p1 := [65]byte{0x01}
@@ -42,8 +41,7 @@ func (s *MVDSInteractiveSuite) SetupTest() {
 
 	in2 := make(chan transport.Packet)
 	t2 := transport.NewChannelTransport(0, in2)
-	ds2 := store.NewDummyStore()
-	s.ds2 = &ds2
+	s.ds2 = store.NewDummyStore()
 	s.state2 = state.NewSyncState()
 	p2 := [65]byte{0x02}
 	s.peers2 = peers.NewMemoryPersistence()
@@ -76,13 +74,13 @@ func (s *MVDSInteractiveSuite) TestInteractiveMode() {
 	s.Require().NotNil(message1Sender)
 
 	// Check state is updated correctly
-	states, err := s.state1.All()
+	states, err := s.state1.All(s.client1.CurrentEpoch())
 	s.Require().NoError(err)
 	s.Require().Equal(1, len(states))
 
 	// Check we store the request
 	s.Require().Eventually(func() bool {
-		states, err := s.state2.All()
+		states, err := s.state2.All(s.client2.CurrentEpoch())
 		return err == nil && len(states) == 1 && states[0].Type == state.REQUEST
 	}, 1*time.Second, 10*time.Millisecond, "An request is stored in the state")
 
@@ -94,7 +92,7 @@ func (s *MVDSInteractiveSuite) TestInteractiveMode() {
 
 	// Check state is removed
 	s.Require().Eventually(func() bool {
-		states, err := s.state1.All()
+		states, err := s.state1.All(s.client1.CurrentEpoch())
 		return err == nil && len(states) == 0
 
 	}, 1*time.Second, 10*time.Millisecond, "We clear all the state")

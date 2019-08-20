@@ -33,8 +33,7 @@ func (s *MVDSBatchSuite) SetupTest() {
 
 	in1 := make(chan transport.Packet)
 	t1 := transport.NewChannelTransport(0, in1)
-	ds1 := store.NewDummyStore()
-	s.ds1 = &ds1
+	s.ds1 = store.NewDummyStore()
 	s.state1 = state.NewSyncState()
 	s.peers1 = peers.NewMemoryPersistence()
 	p1 := [65]byte{0x01}
@@ -42,8 +41,7 @@ func (s *MVDSBatchSuite) SetupTest() {
 
 	in2 := make(chan transport.Packet)
 	t2 := transport.NewChannelTransport(0, in2)
-	ds2 := store.NewDummyStore()
-	s.ds2 = &ds2
+	s.ds2 = store.NewDummyStore()
 	s.state2 = state.NewSyncState()
 	p2 := [65]byte{0x02}
 	s.peers2 = peers.NewMemoryPersistence()
@@ -85,7 +83,7 @@ func (s *MVDSBatchSuite) TestSendClient1ToClient2() {
 		return err == nil && message1Receiver != nil
 	}, 1*time.Second, 10*time.Millisecond)
 
-	message := <- subscription
+	message := <-subscription
 	s.Equal(message.Body, content)
 }
 
@@ -107,7 +105,7 @@ func (s *MVDSBatchSuite) TestSendClient2ToClient1() {
 		return err == nil && message1Receiver != nil
 	}, 1*time.Second, 10*time.Millisecond)
 
-	message := <- subscription
+	message := <-subscription
 	s.Equal(message.Body, content)
 }
 
@@ -121,7 +119,7 @@ func (s *MVDSBatchSuite) TestAcks() {
 	s.Require().NotNil(message1Sender)
 
 	// Check state is updated correctly
-	states, err := s.state1.All()
+	states, err := s.state1.All(s.client1.CurrentEpoch())
 	s.Require().NoError(err)
 	s.Require().Equal(1, len(states))
 
@@ -133,7 +131,7 @@ func (s *MVDSBatchSuite) TestAcks() {
 
 	// Check state is removed
 	s.Require().Eventually(func() bool {
-		states, err := s.state1.All()
+		states, err := s.state1.All(s.client1.CurrentEpoch())
 		return err == nil && len(states) == 0
 
 	}, 1*time.Second, 10*time.Millisecond)

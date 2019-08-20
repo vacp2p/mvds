@@ -7,7 +7,7 @@ build:
 .PHONY: build
 
 test:
-	go test -v
+	go test -v ./...
 .PHONY: test
 
 protobuf:
@@ -28,3 +28,22 @@ vendor:
 	go mod vendor
 	modvendor -copy="**/*.c **/*.h" -v
 .PHONY: vendor
+
+generate:
+	go generate ./...
+.PHONY: generate
+
+create-migration:
+	@if [ -z "$$DIR" ]; then \
+		echo 'missing DIR var'; \
+		exit 1; \
+	fi
+
+	@if [ -z "$$NAME" ]; then \
+		echo 'missing NAME var'; \
+		exit 1; \
+	fi
+
+	mkdir -p $(DIR)
+	touch $(DIR)/`date +"%s"`_$(NAME).down.sql ./$(DIR)/`date +"%s"`_$(NAME).up.sql
+.PHONY: create-migration

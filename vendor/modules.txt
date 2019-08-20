@@ -1,12 +1,30 @@
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/golang-migrate/migrate/v4 v4.5.0
+github.com/golang-migrate/migrate/v4/database
+github.com/golang-migrate/migrate/v4/source
+github.com/golang-migrate/migrate/v4
 # github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
+# github.com/hashicorp/errwrap v1.0.0
+github.com/hashicorp/errwrap
+# github.com/hashicorp/go-multierror v1.0.0
+github.com/hashicorp/go-multierror
+# github.com/mutecomm/go-sqlcipher v0.0.0-20190227152316-55dbde17881f
+github.com/mutecomm/go-sqlcipher
+# github.com/pkg/errors v0.8.1
+github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/stretchr/testify v0.0.0-20190716104307-221dbe5ed46703ee255b1da0dec05086f5035f62
+# github.com/status-im/migrate/v4 v4.3.1-status
+github.com/status-im/migrate/v4
+github.com/status-im/migrate/v4/database/sqlcipher
+github.com/status-im/migrate/v4/source/go_bindata
+# github.com/stretchr/testify v1.3.1-0.20190712000136-221dbe5ed467
 github.com/stretchr/testify/suite
-github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
+github.com/stretchr/testify/assert
+# golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
+golang.org/x/net/context
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
