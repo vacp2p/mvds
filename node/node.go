@@ -69,6 +69,7 @@ func NewPersistentNode(
 		store:            store.NewPersistentMessageStore(db),
 		transport:        st,
 		peers:            peers.NewSQLitePersistence(db),
+		syncState:        state.NewPersistentSyncState(db),
 		payloads:         newPayloads(),
 		epochPersistence: newEpochSQLitePersistence(db),
 		nextEpoch:        nextEpoch,
