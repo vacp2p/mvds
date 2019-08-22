@@ -23,6 +23,16 @@ type MigrationConfig struct {
 	AssetGetter func(name string) ([]byte, error)
 }
 
+// Migrate migrates a provided sqldb
+func Migrate(db *sql.DB) error {
+	assetNames, assetGetter, err := prepareMigrations(DefaultMigrations)
+	if err != nil {
+		return err
+	}
+	return ApplyMigrations(db, assetNames, assetGetter)
+
+}
+
 // Open opens or initializes a new database for a given file path.
 // MigrationConfig is optional but if provided migrations are applied automatically.
 func Open(path, key string, mc ...MigrationConfig) (*sql.DB, error) {
@@ -90,7 +100,7 @@ func ApplyMigrations(db *sql.DB, assetNames []string, assetGetter func(name stri
 	}
 
 	driver, err := sqlcipher.WithInstance(db, &sqlcipher.Config{
-		// MigrationsTable: "mvds_" + sqlcipher.DefaultMigrationsTable,
+		MigrationsTable: "mvds_" + sqlcipher.DefaultMigrationsTable,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to create driver")
