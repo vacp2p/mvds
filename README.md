@@ -8,7 +8,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 [![Go Report Card](https://goreportcard.com/badge/github.com/vacp2p/mvds)](https://goreportcard.com/report/github.com/vacp2p/mvds)
 [![Build Status](https://travis-ci.com/vacp2p/mvds.svg?branch=master)](https://travis-ci.com/vacp2p/mvds)
 
-Experimental implementation of the [minimal viable data sync protocol specification](https://github.com/vacp2p/specs/blob/master/mvds.md).
+Experimental implementation of the [minimal viable data sync protocol specification](https://specs.vac.dev/mvds.html).
 
 ## Usage
 
