@@ -10,6 +10,7 @@ import (
 	"github.com/vacp2p/mvds/state"
 	"github.com/vacp2p/mvds/store"
 	"github.com/vacp2p/mvds/transport"
+	"go.uber.org/zap"
 )
 
 func TestMVDSBatchSuite(t *testing.T) {
@@ -31,13 +32,16 @@ type MVDSBatchSuite struct {
 
 func (s *MVDSBatchSuite) SetupTest() {
 
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
 	in1 := make(chan transport.Packet)
 	t1 := transport.NewChannelTransport(0, in1)
 	s.ds1 = store.NewDummyStore()
 	s.state1 = state.NewSyncState()
 	s.peers1 = peers.NewMemoryPersistence()
 	p1 := [65]byte{0x01}
-	s.client1 = node.NewNode(s.ds1, t1, s.state1, Calc, 0, p1, node.BATCH, s.peers1)
+	s.client1 = node.NewNode(s.ds1, t1, s.state1, Calc, 0, p1, node.BATCH, s.peers1, logger)
 
 	in2 := make(chan transport.Packet)
 	t2 := transport.NewChannelTransport(0, in2)
@@ -45,7 +49,7 @@ func (s *MVDSBatchSuite) SetupTest() {
 	s.state2 = state.NewSyncState()
 	p2 := [65]byte{0x02}
 	s.peers2 = peers.NewMemoryPersistence()
-	s.client2 = node.NewNode(s.ds2, t2, s.state2, Calc, 0, p2, node.BATCH, s.peers2)
+	s.client2 = node.NewNode(s.ds2, t2, s.state2, Calc, 0, p2, node.BATCH, s.peers2, logger)
 
 	t2.AddOutput(p1, in1)
 	t1.AddOutput(p2, in2)

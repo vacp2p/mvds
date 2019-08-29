@@ -13,6 +13,7 @@ import (
 	"github.com/vacp2p/mvds/state"
 	"github.com/vacp2p/mvds/store"
 	"github.com/vacp2p/mvds/transport"
+	"go.uber.org/zap"
 )
 
 var (
@@ -54,9 +55,13 @@ func main() {
 			mode = node.BATCH
 		}
 
+		node, err := createNode(t, peerID(), mode)
+		if err != nil {
+			log.Printf("Could not create node: %+v\n", err)
+		}
 		nodes = append(
 			nodes,
-			createNode(t, peerID(), mode),
+			node,
 		)
 	}
 
@@ -106,8 +111,13 @@ OUTER:
 	return peers
 }
 
-func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) *node.Node {
+func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) (*node.Node, error) {
 	ds := store.NewDummyStore()
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return nil, err
+	}
+
 	return node.NewNode(
 		ds,
 		transport,
@@ -117,7 +127,8 @@ func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) 
 		id,
 		mode,
 		peers.NewMemoryPersistence(),
-	)
+		logger,
+	), nil
 }
 
 func chat(group state.GroupID, nodes ...*node.Node) {
