@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 
+	"github.com/multiformats/go-multihash"
 	"github.com/vacp2p/mvds/state"
 )
 
@@ -16,5 +17,11 @@ func (m Message) ID() state.MessageID {
 	b = append(b, t...)
 	b = append(b, m.Body...)
 
-	return sha256.Sum256(b)
+	hash := sha256.Sum256(b)
+	id, _ := multihash.Encode(hash[:], multihash.SHA2_256)
+
+	mid := state.MessageID{}
+	copy(id[:], id)
+
+	return mid
 }

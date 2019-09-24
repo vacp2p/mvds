@@ -10,12 +10,22 @@ github.com/golang/protobuf/proto
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-multierror v1.0.0
 github.com/hashicorp/go-multierror
+# github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
+github.com/minio/blake2b-simd
+# github.com/minio/sha256-simd v0.1.1-0.20190913151208-6de447530771
+github.com/minio/sha256-simd
+# github.com/mr-tron/base58 v1.1.2
+github.com/mr-tron/base58/base58
+# github.com/multiformats/go-multihash v0.0.8
+github.com/multiformats/go-multihash
 # github.com/mutecomm/go-sqlcipher v0.0.0-20190227152316-55dbde17881f
 github.com/mutecomm/go-sqlcipher
 # github.com/pkg/errors v0.8.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
+# github.com/spaolacci/murmur3 v1.1.0
+github.com/spaolacci/murmur3
 # github.com/status-im/migrate/v4 v4.0.0-20190821140204-a9d340ec8fb76af4afda06acf01740d45d2661ed
 github.com/status-im/migrate/v4
 github.com/status-im/migrate/v4/database/sqlcipher
@@ -35,7 +45,13 @@ go.uber.org/zap/zapcore
 go.uber.org/zap/buffer
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
+# golang.org/x/crypto v0.0.0-20190611184440-5c40567a22f8
+golang.org/x/crypto/blake2s
+golang.org/x/crypto/sha3
 # golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
 golang.org/x/net/context
+# golang.org/x/sys v0.0.0-20190426135247-a129542de9ae
+golang.org/x/sys/cpu
+golang.org/x/sys/unix
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
