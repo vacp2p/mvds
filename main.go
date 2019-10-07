@@ -25,7 +25,7 @@ var (
 	interactive   int
 )
 
-func init() {
+func parseFlags() {
 	flag.IntVar(&offline, "offline", 90, "percentage of time a node is offline")
 	flag.IntVar(&nodeCount, "nodes", 3, "amount of nodes")
 	flag.IntVar(&communicating, "communicating", 2, "amount of nodes sending messages")
@@ -37,6 +37,7 @@ func init() {
 
 func main() {
 
+	parseFlags()
 	// @todo validate flags
 
 	transports := make([]*transport.ChannelTransport, 0)
