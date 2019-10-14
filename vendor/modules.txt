@@ -1,8 +1,9 @@
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/golang-migrate/migrate/v4 v4.5.0
+# github.com/golang-migrate/migrate/v4 v4.6.2
 github.com/golang-migrate/migrate/v4
 github.com/golang-migrate/migrate/v4/database
+github.com/golang-migrate/migrate/v4/internal/url
 github.com/golang-migrate/migrate/v4/source
 # github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
@@ -16,7 +17,7 @@ github.com/mutecomm/go-sqlcipher
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/status-im/migrate/v4 v4.6.2-status.1
+# github.com/status-im/migrate/v4 v4.6.2-status.2
 github.com/status-im/migrate/v4
 github.com/status-im/migrate/v4/database/sqlcipher
 github.com/status-im/migrate/v4/internal/url
