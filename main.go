@@ -137,7 +137,7 @@ func chat(group state.GroupID, nodes ...*node.Node) {
 		time.Sleep(time.Duration(interval) * time.Second)
 
 		for _, n := range nodes {
-			_, err := n.AppendMessage(group, []byte(fmt.Sprintf("%x testing", n.ID)))
+			_, err := n.AppendMessage(group, []byte(fmt.Sprintf("%x testing", n.ID)), nil)
 			if err != nil {
 				fmt.Println(err)
 			}

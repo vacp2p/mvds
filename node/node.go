@@ -20,7 +20,7 @@ import (
 	"github.com/vacp2p/mvds/transport"
 )
 
-// Mode represents the synchronization mode.
+// Mode represents the synchronization defaultMode.
 type Mode int
 
 const (
@@ -52,7 +52,7 @@ type Node struct {
 	ID state.PeerID
 
 	epochPersistence *epochSQLitePersistence
-	mode             Mode
+	defaultMode      Mode
 
 	subscription chan protobuf.Message
 
@@ -84,7 +84,7 @@ func NewPersistentNode(
 		epochPersistence: newEpochSQLitePersistence(db),
 		nextEpoch:        nextEpoch,
 		logger:           logger.With(zap.Namespace("mvds")),
-		mode:             mode,
+		defaultMode:      mode,
 	}
 	if currentEpoch, err := node.epochPersistence.Get(id); err != nil {
 		return nil, err
@@ -108,18 +108,18 @@ func NewEphemeralNode(
 	}
 
 	return &Node{
-		ID:        id,
-		ctx:       ctx,
-		cancel:    cancel,
-		store:     store.NewDummyStore(),
-		transport: t,
-		syncState: state.NewSyncState(),
-		peers:     peers.NewMemoryPersistence(),
-		payloads:  newPayloads(),
-		nextEpoch: nextEpoch,
-		epoch:     currentEpoch,
-		logger:    logger.With(zap.Namespace("mvds")),
-		mode:      mode,
+		ID:          id,
+		ctx:         ctx,
+		cancel:      cancel,
+		store:       store.NewDummyStore(),
+		transport:   t,
+		syncState:   state.NewSyncState(),
+		peers:       peers.NewMemoryPersistence(),
+		payloads:    newPayloads(),
+		nextEpoch:   nextEpoch,
+		epoch:       currentEpoch,
+		logger:      logger.With(zap.Namespace("mvds")),
+		defaultMode: mode,
 	}
 }
 
@@ -141,18 +141,18 @@ func NewNode(
 	}
 
 	return &Node{
-		ctx:       ctx,
-		cancel:    cancel,
-		store:     ms,
-		transport: st,
-		syncState: ss,
-		peers:     pp,
-		payloads:  newPayloads(),
-		nextEpoch: nextEpoch,
-		ID:        id,
-		epoch:     currentEpoch,
-		logger:    logger.With(zap.Namespace("mvds")),
-		mode:      mode,
+		ctx:         ctx,
+		cancel:      cancel,
+		store:       ms,
+		transport:   st,
+		syncState:   ss,
+		peers:       pp,
+		payloads:    newPayloads(),
+		nextEpoch:   nextEpoch,
+		ID:          id,
+		epoch:       currentEpoch,
+		logger:      logger.With(zap.Namespace("mvds")),
+		defaultMode: mode,
 	}
 }
 
@@ -222,7 +222,7 @@ func (n *Node) Unsubscribe() {
 }
 
 // AppendMessage sends a message to a given group.
-func (n *Node) AppendMessage(groupID state.GroupID, data []byte) (state.MessageID, error) {
+func (n *Node) AppendMessage(groupID state.GroupID, data []byte, mode *Mode) (state.MessageID, error) {
 	m := protobuf.Message{
 		GroupId:   groupID[:],
 		Timestamp: time.Now().Unix(),
@@ -243,7 +243,8 @@ func (n *Node) AppendMessage(groupID state.GroupID, data []byte) (state.MessageI
 
 	for _, p := range peers {
 		t := state.OFFER
-		if n.mode == BATCH {
+
+		if (mode == nil && n.defaultMode == BATCH) || (mode != nil && *mode == BATCH) {
 			t = state.MESSAGE
 		}
 
