@@ -3,9 +3,11 @@
 
 package protobuf
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -16,7 +18,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type Payload struct {
 	Acks                 [][]byte   `protobuf:"bytes,1,rep,name=acks,proto3" json:"acks,omitempty"`
@@ -32,16 +34,17 @@ func (m *Payload) Reset()         { *m = Payload{} }
 func (m *Payload) String() string { return proto.CompactTextString(m) }
 func (*Payload) ProtoMessage()    {}
 func (*Payload) Descriptor() ([]byte, []int) {
-	return fileDescriptor_sync_2df865c5a43efa4d, []int{0}
+	return fileDescriptor_2dca527c092c79d7, []int{0}
 }
+
 func (m *Payload) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Payload.Unmarshal(m, b)
 }
 func (m *Payload) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Payload.Marshal(b, m, deterministic)
 }
-func (dst *Payload) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Payload.Merge(dst, src)
+func (m *Payload) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Payload.Merge(m, src)
 }
 func (m *Payload) XXX_Size() int {
 	return xxx_messageInfo_Payload.Size(m)
@@ -93,16 +96,17 @@ func (m *Message) Reset()         { *m = Message{} }
 func (m *Message) String() string { return proto.CompactTextString(m) }
 func (*Message) ProtoMessage()    {}
 func (*Message) Descriptor() ([]byte, []int) {
-	return fileDescriptor_sync_2df865c5a43efa4d, []int{1}
+	return fileDescriptor_2dca527c092c79d7, []int{1}
 }
+
 func (m *Message) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Message.Unmarshal(m, b)
 }
 func (m *Message) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Message.Marshal(b, m, deterministic)
 }
-func (dst *Message) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Message.Merge(dst, src)
+func (m *Message) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Message.Merge(m, src)
 }
 func (m *Message) XXX_Size() int {
 	return xxx_messageInfo_Message.Size(m)
@@ -139,9 +143,9 @@ func init() {
 	proto.RegisterType((*Message)(nil), "mvds.Message")
 }
 
-func init() { proto.RegisterFile("protobuf/sync.proto", fileDescriptor_sync_2df865c5a43efa4d) }
+func init() { proto.RegisterFile("protobuf/sync.proto", fileDescriptor_2dca527c092c79d7) }
 
-var fileDescriptor_sync_2df865c5a43efa4d = []byte{
+var fileDescriptor_2dca527c092c79d7 = []byte{
 	// 212 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x44, 0x8f, 0xb1, 0x4a, 0x04, 0x31,
 	0x10, 0x86, 0xd9, 0xcb, 0x72, 0x1b, 0xc7, 0xb3, 0x19, 0x41, 0xa2, 0x58, 0x84, 0xab, 0x62, 0xb3,
