@@ -349,7 +349,7 @@ func (n *Node) sendMessages() error {
 			)
 
 			if msg.Metadata != nil && msg.Metadata.NoAckRequired {
-				_ := n.syncState.Remove(msg.ID(), p)
+				_ = n.syncState.Remove(msg.ID(), p) // @todo
 			}
 		}
 
