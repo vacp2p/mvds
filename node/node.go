@@ -223,10 +223,21 @@ func (n *Node) Unsubscribe() {
 
 // AppendMessage sends a message to a given group.
 func (n *Node) AppendMessage(groupID state.GroupID, data []byte) (state.MessageID, error) {
+	return n.AppendMessageWithMetadata(groupID, data, nil)
+}
+
+// AppendEphemeralMessage sends a message to a given group that has the `no_ack_required` flag set to `true`.
+func (n *Node) AppendEphemeralMessage(groupID state.GroupID, data []byte) (state.MessageID, error) {
+	return n.AppendMessageWithMetadata(groupID, data, &protobuf.Metadata{NoAckRequired: true})
+}
+
+// AppendMessageWithMetadata sends a message to a given group with metadata.
+func (n *Node) AppendMessageWithMetadata(groupID state.GroupID, data []byte, metadata *protobuf.Metadata) (state.MessageID, error) {
 	m := protobuf.Message{
 		GroupId:   groupID[:],
 		Timestamp: time.Now().Unix(),
 		Body:      data,
+		Metadata:  metadata,
 	}
 
 	id := m.ID()
