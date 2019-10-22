@@ -252,12 +252,12 @@ func (n *Node) AppendMessageWithMetadata(groupID state.GroupID, data []byte, met
 		return state.MessageID{}, err
 	}
 
-	for _, p := range peers {
-		t := state.OFFER
-		if n.mode == BATCH {
-			t = state.MESSAGE
-		}
+	t := state.OFFER
+	if n.mode == BATCH {
+		t = state.MESSAGE
+	}
 
+	for _, p := range peers {
 		n.insertSyncState(&groupID, id, p, t)
 	}
 
@@ -304,6 +304,9 @@ func (n *Node) IsPeerInGroup(g state.GroupID, p state.PeerID) (bool, error) {
 }
 
 func (n *Node) sendMessages() error {
+
+	toRemove := make([]state.State, 0)
+
 	err := n.syncState.Map(n.epoch, func(s state.State) state.State {
 		m := s.MessageID
 		p := s.PeerID
@@ -349,12 +352,16 @@ func (n *Node) sendMessages() error {
 			)
 
 			if msg.Metadata != nil && msg.Metadata.NoAckRequired {
-				_ = n.syncState.Remove(msg.ID(), p) // @todo
+				toRemove = append(toRemove, s)
 			}
 		}
 
 		return n.updateSendEpoch(s)
 	})
+
+	for _, remove := range toRemove {
+		n.syncState.Remove(remove.MessageID, remove.PeerID)
+	}
 
 	if err != nil {
 		n.logger.Error("error while mapping sync state", zap.Error(err))
