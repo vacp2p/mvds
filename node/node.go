@@ -337,6 +337,9 @@ func (n *Node) sendMessages() error {
 				zap.String("messageID", hex.EncodeToString(m[:4])),
 			)
 
+			if msg.Metadata != nil && msg.Metadata.NoAckRequired {
+				_ := n.syncState.Remove(msg.ID(), p)
+			}
 		}
 
 		return n.updateSendEpoch(s)
