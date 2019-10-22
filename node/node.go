@@ -323,7 +323,6 @@ func (n *Node) sendMessages() error {
 
 		case state.MESSAGE:
 			g := *s.GroupID
-			//  TODO: Handle errors
 			exist, err := n.IsPeerInGroup(g, p)
 			if err != nil {
 				return s
@@ -358,10 +357,6 @@ func (n *Node) sendMessages() error {
 
 		return n.updateSendEpoch(s)
 	})
-
-	for _, remove := range toRemove {
-		n.syncState.Remove(remove.MessageID, remove.PeerID)
-	}
 
 	if err != nil {
 		n.logger.Error("error while mapping sync state", zap.Error(err))
@@ -539,12 +534,18 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		return err
 	}
 
+	// @todo if a message is no_ack_required, do we want this
 	for _, peer := range peers {
 		if peer == sender {
 			continue
 		}
 
-		n.insertSyncState(&groupID, id, peer, state.OFFER)
+		t := state.OFFER
+		if n.mode == BATCH || (msg.Metadata != nil && msg.Metadata.NoAckRequired == true) {
+			t = state.MESSAGE
+		}
+
+		n.insertSyncState(&groupID, id, peer, t)
 	}
 
 	if n.subscription != nil {
