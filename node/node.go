@@ -541,7 +541,7 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		}
 
 		t := state.OFFER
-		if n.mode == BATCH || (msg.Metadata != nil && msg.Metadata.NoAckRequired == true) {
+		if n.mode == BATCH || (msg.Metadata != nil && msg.Metadata.NoAckRequired) {
 			t = state.MESSAGE
 		}
 
