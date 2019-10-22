@@ -469,6 +469,17 @@ func (n *Node) onMessages(sender state.PeerID, messages []*protobuf.Message) [][
 		}
 
 		id := m.ID()
+
+		if m.Metadata != nil && m.Metadata.NoAckRequired {
+			n.logger.Debug("not sending ACK",
+				zap.String("groupID", hex.EncodeToString(groupID[:4])),
+				zap.String("from", hex.EncodeToString(n.ID[:4])),
+				zap.String("", hex.EncodeToString(sender[:4])),
+				zap.String("messageID", hex.EncodeToString(id[:4])),
+			)
+			continue
+		}
+
 		n.logger.Debug("sending ACK",
 			zap.String("groupID", hex.EncodeToString(groupID[:4])),
 			zap.String("from", hex.EncodeToString(n.ID[:4])),
