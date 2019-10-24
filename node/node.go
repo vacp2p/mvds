@@ -228,7 +228,7 @@ func (n *Node) AppendMessage(groupID state.GroupID, data []byte) (state.MessageI
 
 // AppendEphemeralMessage sends a message to a given group that has the `no_ack_required` flag set to `true`.
 func (n *Node) AppendEphemeralMessage(groupID state.GroupID, data []byte) (state.MessageID, error) {
-	return n.AppendMessageWithMetadata(groupID, data, &protobuf.Metadata{NoAckRequired: true})
+	return n.AppendMessageWithMetadata(groupID, data, &protobuf.Metadata{Ephemeral: true})
 }
 
 // AppendMessageWithMetadata sends a message to a given group with metadata.
@@ -350,7 +350,7 @@ func (n *Node) sendMessages() error {
 				zap.String("messageID", hex.EncodeToString(m[:4])),
 			)
 
-			if msg.Metadata != nil && msg.Metadata.NoAckRequired {
+			if msg.Metadata != nil && msg.Metadata.Ephemeral {
 				toRemove = append(toRemove, s)
 			}
 		}
@@ -486,7 +486,7 @@ func (n *Node) onMessages(sender state.PeerID, messages []*protobuf.Message) [][
 
 		id := m.ID()
 
-		if m.Metadata != nil && m.Metadata.NoAckRequired {
+		if m.Metadata != nil && m.Metadata.Ephemeral {
 			n.logger.Debug("not sending ACK",
 				zap.String("groupID", hex.EncodeToString(groupID[:4])),
 				zap.String("from", hex.EncodeToString(n.ID[:4])),
@@ -541,7 +541,7 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		}
 
 		t := state.OFFER
-		if n.mode == BATCH || (msg.Metadata != nil && msg.Metadata.NoAckRequired) {
+		if n.mode == BATCH || (msg.Metadata != nil && msg.Metadata.Ephemeral) {
 			t = state.MESSAGE
 		}
 

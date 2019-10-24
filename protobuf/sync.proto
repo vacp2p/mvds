@@ -12,7 +12,7 @@ message Payload {
 
 message Metadata {
   bytes parents = 1;
-  bool no_ack_required = 2;
+  bool ephemeral = 2;
 }
 
 message Message {
