@@ -28,6 +28,13 @@ const (
 	BATCH
 )
 
+type ResolutionMode int
+
+const (
+	EVENTUAL ResolutionMode = iota
+	CONSISTENT
+)
+
 // CalculateNextEpoch is a function used to calculate the next `SendEpoch` for a given message.
 type CalculateNextEpoch func(count uint64, epoch int64) int64
 
@@ -52,7 +59,9 @@ type Node struct {
 	ID state.PeerID
 
 	epochPersistence *epochSQLitePersistence
-	mode             Mode
+
+	mode       Mode
+	resolution ResolutionMode
 
 	subscription chan protobuf.Message
 
@@ -64,6 +73,7 @@ func NewPersistentNode(
 	st transport.Transport,
 	id state.PeerID,
 	mode Mode,
+	resolution ResolutionMode,
 	nextEpoch CalculateNextEpoch,
 	logger *zap.Logger,
 ) (*Node, error) {
@@ -85,6 +95,7 @@ func NewPersistentNode(
 		nextEpoch:        nextEpoch,
 		logger:           logger.With(zap.Namespace("mvds")),
 		mode:             mode,
+		resolution:       resolution,
 	}
 	if currentEpoch, err := node.epochPersistence.Get(id); err != nil {
 		return nil, err
@@ -509,6 +520,7 @@ func (n *Node) onMessages(sender state.PeerID, messages []*protobuf.Message) [][
 	return a
 }
 
+// @todo cleanup this function
 func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 	id := msg.ID()
 	groupID := toGroupID(msg.GroupId)
@@ -527,6 +539,14 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 	if err != nil {
 		return err
 		// @todo process, should this function ever even have an error?
+	}
+
+	if msg.Metadata != nil && len(msg.Metadata.Parents) > 0 {
+		if n.resolution == EVENTUAL {
+			for _, parent := range msg.Metadata.Parents {
+				n.insertSyncState(nil, toMessageID(parent), sender, state.REQUEST)
+			}
+		}
 	}
 
 	peers, err := n.peers.GetByGroupID(groupID)
@@ -548,6 +568,7 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		n.insertSyncState(&groupID, id, peer, t)
 	}
 
+	// @todo only if eventual
 	if n.subscription != nil {
 		n.subscription <- msg
 	}
