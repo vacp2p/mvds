@@ -32,8 +32,7 @@ type MVDSInteractiveSuite struct {
 
 func (s *MVDSInteractiveSuite) SetupTest() {
 
-	logger, err := zap.NewDevelopment()
-	s.Require().NoError(err)
+	logger := zap.NewNop()
 
 	in1 := make(chan transport.Packet)
 	t1 := transport.NewChannelTransport(0, in1)
