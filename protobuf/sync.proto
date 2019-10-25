@@ -11,7 +11,7 @@ message Payload {
 }
 
 message Metadata {
-  bytes parents = 1;
+  repeated bytes parents = 1;
   bool ephemeral = 2;
 }
 
