@@ -12,6 +12,17 @@ Experimental implementation of the [minimal viable data sync protocol specificat
 
 ## Usage
 
+Listening to MVDS messages is fairly simple:
+
+```go
+sub := node.Subscribe()
+
+for {
+    msg := <-sub
+    print(msg)
+}
+```
+
 ### Prerequisites
 
 Ensure you have `protoc` (Protobuf) and Golang installed. Then run `make`.
