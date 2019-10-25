@@ -541,14 +541,6 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		// @todo process, should this function ever even have an error?
 	}
 
-	if msg.Metadata != nil && len(msg.Metadata.Parents) > 0 {
-		if n.resolution == EVENTUAL {
-			for _, parent := range msg.Metadata.Parents {
-				n.insertSyncState(nil, toMessageID(parent), sender, state.REQUEST)
-			}
-		}
-	}
-
 	peers, err := n.peers.GetByGroupID(groupID)
 	if err != nil {
 		return err
@@ -566,6 +558,14 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		}
 
 		n.insertSyncState(&groupID, id, peer, t)
+	}
+
+	if msg.Metadata != nil && len(msg.Metadata.Parents) > 0 {
+		if n.resolution == EVENTUAL {
+			for _, parent := range msg.Metadata.Parents {
+				n.insertSyncState(nil, toMessageID(parent), sender, state.REQUEST)
+			}
+		}
 	}
 
 	// @todo only if eventual
