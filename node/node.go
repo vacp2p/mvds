@@ -569,7 +569,7 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 }
 
 // @todo I do not think this will work, this needs be some recrusive function
-
+// @todo add method to select depth of how far we resolve dependencies
 
 func (n *Node) resolve(sender state.PeerID, msg protobuf.Message) {
 	id := msg.ID()
@@ -607,6 +607,8 @@ func (n *Node) resolve(sender state.PeerID, msg protobuf.Message) {
 		if n.dependencies.HasUnresolvedDependencies(dependant) {
 			continue
 		}
+
+		// @todo should this be replaced with a call to resolve?
 
 		msg, err := n.store.Get(dependant)
 		if err != nil {
