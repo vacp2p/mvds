@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/vacp2p/mvds/dependency"
 	"go.uber.org/zap"
 
 	"github.com/vacp2p/mvds/peers"
@@ -53,6 +54,8 @@ type Node struct {
 	peers peers.Persistence
 
 	payloads payloads
+
+	dependencies dependency.MessageDependency
 
 	nextEpoch CalculateNextEpoch
 
@@ -560,20 +563,71 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		n.insertSyncState(&groupID, id, peer, t)
 	}
 
+	n.resolve(sender, msg)
+
+	return nil
+}
+
+// @todo I do not think this will work, this needs be some recrusive function
+
+
+func (n *Node) resolve(sender state.PeerID, msg protobuf.Message) {
+	id := msg.ID()
+
 	if msg.Metadata != nil && len(msg.Metadata.Parents) > 0 {
-		if n.resolution == EVENTUAL {
-			for _, parent := range msg.Metadata.Parents {
-				n.insertSyncState(nil, toMessageID(parent), sender, state.REQUEST)
+
+		unresolved := 0
+		for _, parent := range msg.Metadata.Parents {
+			pid := toMessageID(parent)
+
+			has, _ := n.store.Has(pid); if has {
+				continue
 			}
+
+			n.insertSyncState(nil, pid, sender, state.REQUEST)
+			unresolved++
+
+			if n.resolution == CONSISTENT {
+				n.dependencies.Add(id, pid)
+			}
+		}
+
+		// if its eventual we don't need to wait for resolving
+		if n.resolution == CONSISTENT && unresolved > 0 {
+			return
 		}
 	}
 
-	// @todo only if eventual
-	if n.subscription != nil {
-		n.subscription <- msg
+	n.share(msg)
+
+	dependants := n.dependencies.Dependants(id)
+	for _, dependant := range dependants {
+		n.dependencies.MarkResolved(dependant, id)
+
+		if n.dependencies.HasUnresolvedDependencies(dependant) {
+			continue
+		}
+
+		msg, err := n.store.Get(dependant)
+		if err != nil {
+			n.logger.Error("error getting message",
+				zap.Error(err),
+				zap.String("messageID", hex.EncodeToString(dependant[:4])),
+			)
+		}
+
+		if msg != nil {
+			n.share(*msg)
+		}
+	}
+}
+
+func (n *Node) share(msg protobuf.Message) {
+	if n.subscription == nil {
+		return
 	}
 
-	return nil
+	n.subscription <- msg
 }
 
 func (n *Node) insertSyncState(groupID *state.GroupID, messageID state.MessageID, peerID state.PeerID, t state.RecordType) {
