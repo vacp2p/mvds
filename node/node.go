@@ -586,7 +586,7 @@ func (n *Node) resolve(sender state.PeerID, msg *protobuf.Message) {
 		for _, parent := range msg.Metadata.Parents {
 			pid := state.ToMessageID(parent)
 
-			has, _ := n.store.Has(pid); if has {
+			if has, _ := n.store.Has(pid); has {
 				continue
 			}
 
