@@ -283,7 +283,7 @@ func (n *Node) AppendMessageWithMetadata(groupID state.GroupID, data []byte, met
 		zap.String("node", hex.EncodeToString(n.ID[:4])),
 		zap.String("groupID", hex.EncodeToString(groupID[:4])),
 		zap.String("id", hex.EncodeToString(id[:4])))
-	// @todo think about a way to insta trigger send messages when send was selected, we don't wanna wait for ticks here
+	// @todo think about a way to insta trigger pushToSub messages when pushToSub was selected, we don't wanna wait for ticks here
 
 	return id, nil
 }
@@ -554,7 +554,7 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		return err
 	}
 
-	n.share(msg)
+	n.pushToSub(msg)
 
 	return nil
 }
@@ -613,7 +613,7 @@ func (n *Node) resolve(sender state.PeerID, msg protobuf.Message) {
 		}
 	}
 
-	n.share(msg)
+	n.pushToSub(msg)
 
 	dependants := n.dependencies.Dependants(id)
 	for _, dependant := range dependants {
@@ -634,12 +634,12 @@ func (n *Node) resolve(sender state.PeerID, msg protobuf.Message) {
 		}
 
 		if msg != nil {
-			n.share(*msg)
+			n.pushToSub(*msg)
 		}
 	}
 }
 
-func (n *Node) share(msg protobuf.Message) {
+func (n *Node) pushToSub(msg protobuf.Message) {
 	if n.subscription == nil {
 		return
 	}
