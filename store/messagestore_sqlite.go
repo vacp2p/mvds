@@ -125,7 +125,7 @@ func (p *persistentMessageStore) Has(id state.MessageID) (bool, error) {
 }
 
 func (p *persistentMessageStore) GetMessagesWithoutChildren(id state.GroupID) ([]state.MessageID, error) {
-	result := make([]state.MessageID, 0)
+	var result []state.MessageID
 	rows, err := p.db.Query(
 		`SELECT id FROM mvds_messages WHERE group_id = ? AND id NOT IN (SELECT parent FROM mvds_parents)`,
 		id[:],
