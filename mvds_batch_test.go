@@ -80,14 +80,12 @@ func (s *MVDSBatchSuite) TestSendClient1ToClient2() {
 	s.Require().NoError(err)
 	s.Require().NotNil(message1Sender)
 
-	// Check message is received
-	s.Require().Eventually(func() bool {
-		message1Receiver, err := s.ds2.Get(messageID)
-		return err == nil && message1Receiver != nil
-	}, 1*time.Second, 10*time.Millisecond)
-
 	message := <-subscription
 	s.Equal(message.Body, content)
+
+	message1Receiver, err := s.ds2.Get(messageID)
+	s.Require().NoError(err)
+	s.Require().NotNil(message1Receiver)
 }
 
 func (s *MVDSBatchSuite) TestSendClient2ToClient1() {
@@ -102,17 +100,16 @@ func (s *MVDSBatchSuite) TestSendClient2ToClient1() {
 	s.Require().NoError(err)
 	s.Require().NotNil(message1Sender)
 
-	// Check message is received
-	s.Require().Eventually(func() bool {
-		message1Receiver, err := s.ds1.Get(messageID)
-		return err == nil && message1Receiver != nil
-	}, 1*time.Second, 10*time.Millisecond)
-
 	message := <-subscription
 	s.Equal(message.Body, content)
+
+	message1Receiver, err := s.ds1.Get(messageID)
+	s.Require().NoError(err)
+	s.Require().NotNil(message1Receiver)
 }
 
 func (s *MVDSBatchSuite) TestAcks() {
+	subscription := s.client2.Subscribe()
 	messageID, err := s.client1.AppendMessage(s.groupID, []byte("message 1"))
 	s.Require().NoError(err)
 
@@ -126,11 +123,11 @@ func (s *MVDSBatchSuite) TestAcks() {
 	s.Require().NoError(err)
 	s.Require().Equal(1, len(states))
 
-	// Check message is received
-	s.Require().Eventually(func() bool {
-		message1Receiver, err := s.ds2.Get(messageID)
-		return err == nil && message1Receiver != nil
-	}, 1*time.Second, 10*time.Millisecond)
+	<-subscription
+
+	message1Receiver, err := s.ds2.Get(messageID)
+	s.Require().NoError(err)
+	s.Require().NotNil(message1Receiver)
 
 	// Check state is removed
 	s.Require().Eventually(func() bool {
