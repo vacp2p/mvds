@@ -269,23 +269,14 @@ func (n *Node) AppendMessageWithMetadata(groupID state.GroupID, data []byte, met
 
 	id := m.ID()
 
-	peers, err := n.peers.GetByGroupID(groupID)
-	if err != nil {
-		return state.MessageID{}, fmt.Errorf("trying to send to unknown group %x", groupID[:4])
-	}
-
-	err = n.store.Add(&m)
+	err := n.store.Add(&m)
 	if err != nil {
 		return state.MessageID{}, err
 	}
 
-	t := state.OFFER
-	if n.mode == BATCH {
-		t = state.MESSAGE
-	}
-
-	for _, p := range peers {
-		n.insertSyncState(&groupID, id, p, t)
+	err = n.broadcastToGroup(groupID, n.ID, m)
+	if err != nil {
+		return state.MessageID{}, err
 	}
 
 	n.logger.Debug("Appending Message to Sync State",
@@ -551,36 +542,43 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		return err
 	}
 
-	isEphemeral := true
 	if msg.Metadata == nil || !msg.Metadata.Ephemeral {
-		isEphemeral = false
 		err = n.store.Add(&msg)
 		if err != nil {
 			return err
 		}
 	}
 
-	peers, err := n.peers.GetByGroupID(groupID)
+	err = n.broadcastToGroup(groupID, sender, msg)
 	if err != nil {
 		return err
 	}
 
-	// @todo if a message is no_ack_required, do we want this
-	for _, peer := range peers {
+	n.share(msg)
+
+	return nil
+}
+
+func (n *Node) broadcastToGroup(group state.GroupID, sender state.PeerID, msg protobuf.Message) error {
+	p, err := n.peers.GetByGroupID(group)
+	if err != nil {
+		return err
+	}
+
+	id := msg.ID()
+
+	for _, peer := range p {
 		if peer == sender {
 			continue
 		}
 
 		t := state.OFFER
-		if n.mode == BATCH || isEphemeral {
+		if n.mode == BATCH || (msg.Metadata == nil && !msg.Metadata.Ephemeral) {
 			t = state.MESSAGE
 		}
 
-		n.insertSyncState(&groupID, id, peer, t)
+		n.insertSyncState(&group, id, peer, t)
 	}
-
-	//n.resolve(sender, msg)
-	n.share(msg)
 
 	return nil
 }
