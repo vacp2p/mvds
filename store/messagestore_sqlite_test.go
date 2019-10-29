@@ -28,6 +28,7 @@ func TestPersistentMessageStore(t *testing.T) {
 		GroupId:   []byte{0x01},
 		Timestamp: now,
 		Body:      []byte{0xaa, 0xbb, 0xcc},
+		Metadata: &protobuf.Metadata{Ephemeral: false, Parents: [][]byte{{0xaa, 0xbb, 0xcc}}},
 	}
 
 	err = p.Add(&message)

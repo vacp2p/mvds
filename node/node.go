@@ -579,7 +579,8 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		n.insertSyncState(&groupID, id, peer, t)
 	}
 
-	n.resolve(sender, msg)
+	//n.resolve(sender, msg)
+	n.share(msg)
 
 	return nil
 }

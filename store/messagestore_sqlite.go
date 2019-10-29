@@ -49,10 +49,13 @@ func (p *persistentMessageStore) Add(message *protobuf.Message) error {
 
 		for _, row := range message.Metadata.Parents {
 			query += "(?, ?),"
-			vals = append(vals, id, row)
+			vals = append(vals, id[:], row[:])
 		}
 
-		stmt, _ := tx.Prepare(query[0:len(query)-2])
+		stmt, err := tx.Prepare(query[0:len(query)-1])
+		if err != nil {
+			return err
+		}
 
 		_, err = stmt.Exec(vals...)
 		if err != nil {
@@ -78,7 +81,29 @@ func (p *persistentMessageStore) Get(id state.MessageID) (*protobuf.Message, err
 		return nil, err
 	}
 
-	rows := p.db.Query()
+	message.Metadata = &protobuf.Metadata{Ephemeral: false, Parents: make([][]byte, 0)}
+
+	rows, err := p.db.Query(`SELECT parent FROM mvds_parents WHERE message = ?`, id[:])
+	if err != nil {
+		return nil, err
+	}
+
+	var parent []byte
+
+	defer rows.Close()
+	for rows.Next() {
+		err := rows.Scan(&parent)
+		if err != nil {
+			return nil, err
+		}
+
+		message.Metadata.Parents = append(message.Metadata.Parents, parent)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
 
 	return &message, nil
 }
