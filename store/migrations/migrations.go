@@ -25,24 +25,6 @@ func bindata_read(data []byte, name string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-var __1565447861_initial_schema_down_sql = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x72\x71\xf5\x71\x0d\x71\x55\x08\x71\x74\xf2\x71\x55\xc8\x2d\x4b\x29\x8e\xcf\x4d\x2d\x2e\x4e\x4c\x4f\x2d\xb6\xe6\x02\x04\x00\x00\xff\xff\xc2\x3a\x18\x9b\x1c\x00\x00\x00")
-
-func _1565447861_initial_schema_down_sql() ([]byte, error) {
-	return bindata_read(
-		__1565447861_initial_schema_down_sql,
-		"1565447861_initial_schema.down.sql",
-	)
-}
-
-var __1565447861_initial_schema_up_sql = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x72\x0e\x72\x75\x0c\x71\x55\x08\x71\x74\xf2\x71\x55\xc8\x2d\x4b\x29\x8e\xcf\x4d\x2d\x2e\x4e\x4c\x4f\x2d\x56\xd0\xe0\x52\x50\x50\x50\xc8\x4c\x51\x70\xf2\xf1\x77\x52\x08\x08\xf2\xf4\x75\x0c\x8a\x54\xf0\x76\x8d\xd4\x01\x4b\xa4\x17\xe5\x97\x16\xc4\xc3\xa4\xfd\xfc\x43\x14\xfc\x42\x7d\x7c\x20\x72\x25\x99\xb9\xa9\xc5\x25\x89\xb9\x05\x0a\x9e\x7e\x21\xae\xee\xae\x41\x68\xf2\x49\xf9\x29\x95\xa8\xfa\xb8\x34\xad\xb9\x00\x01\x00\x00\xff\xff\xae\x9b\x57\x51\x8c\x00\x00\x00")
-
-func _1565447861_initial_schema_up_sql() ([]byte, error) {
-	return bindata_read(
-		__1565447861_initial_schema_up_sql,
-		"1565447861_initial_schema.up.sql",
-	)
-}
-
 var __1572372377_initial_schema_down_sql = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x72\x71\xf5\x71\x0d\x71\x55\x08\x71\x74\xf2\x71\x55\xc8\x2d\x4b\x29\x8e\xcf\x4d\x2d\x2e\x4e\x4c\x4f\x2d\xb6\xe6\xc2\x94\x2b\x48\x2c\x4a\xcd\x2b\x29\xb6\x06\x04\x00\x00\xff\xff\x59\x6a\x32\x52\x36\x00\x00\x00")
 
 func _1572372377_initial_schema_down_sql() ([]byte, error) {
@@ -92,8 +74,6 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() ([]byte, error){
-	"1565447861_initial_schema.down.sql": _1565447861_initial_schema_down_sql,
-	"1565447861_initial_schema.up.sql": _1565447861_initial_schema_up_sql,
 	"1572372377_initial_schema.down.sql": _1572372377_initial_schema_down_sql,
 	"1572372377_initial_schema.up.sql": _1572372377_initial_schema_up_sql,
 	"doc.go": doc_go,
@@ -138,10 +118,6 @@ type _bintree_t struct {
 	Children map[string]*_bintree_t
 }
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
-	"1565447861_initial_schema.down.sql": &_bintree_t{_1565447861_initial_schema_down_sql, map[string]*_bintree_t{
-	}},
-	"1565447861_initial_schema.up.sql": &_bintree_t{_1565447861_initial_schema_up_sql, map[string]*_bintree_t{
-	}},
 	"1572372377_initial_schema.down.sql": &_bintree_t{_1572372377_initial_schema_down_sql, map[string]*_bintree_t{
 	}},
 	"1572372377_initial_schema.up.sql": &_bintree_t{_1572372377_initial_schema_up_sql, map[string]*_bintree_t{
