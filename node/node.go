@@ -323,7 +323,7 @@ func (n *Node) IsPeerInGroup(g state.GroupID, p state.PeerID) (bool, error) {
 
 func (n *Node) sendMessages() error {
 
-	toRemove := make([]state.State, 0)
+	var toRemove []state.State
 
 	err := n.syncState.Map(n.epoch, func(s state.State) state.State {
 		m := s.MessageID
