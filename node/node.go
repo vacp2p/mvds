@@ -33,7 +33,7 @@ type ResolutionMode int
 
 const (
 	EventualMode ResolutionMode = iota + 1
-	CONSISTENT
+	ConsistentMode
 )
 
 // CalculateNextEpoch is a function used to calculate the next `SendEpoch` for a given message.
