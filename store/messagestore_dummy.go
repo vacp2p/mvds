@@ -44,11 +44,11 @@ func (ds *DummyStore) Add(message *protobuf.Message) error {
 	return nil
 }
 
-func (ds *DummyStore) GetMessagesWithoutChildren(id state.GroupID) []state.MessageID {
-	msgs := make([]state.MessageID, 0)
+func (ds *DummyStore) GetMessagesWithoutChildren(group state.GroupID) []state.MessageID {
+	hasChildren := make(map[state.MessageID]bool, 0)
 
-	for msgid, msg := range ds.ms {
-		if state.ToGroupID(msg.GroupId) != id {
+	for id, msg := range ds.ms {
+		if state.ToGroupID(msg.GroupId) != group {
 			continue
 		}
 
@@ -56,22 +56,24 @@ func (ds *DummyStore) GetMessagesWithoutChildren(id state.GroupID) []state.Messa
 			continue
 		}
 
-		for _, parent := range msg.Metadata.Parents {
-			for i, p := range msgs {
-				if p == state.ToMessageID(parent) {
-					msgs = remove(msgs, i)
-					break
-				}
-			}
+		// we do this because ephemeral messages are not allowed to be linked as a parent
+		if msg.Metadata.Ephemeral == true {
+			hasChildren[id] = true
 		}
 
-		msgs = append(msgs, msgid)
+		for _, parent := range msg.Metadata.Parents {
+			hasChildren[state.ToMessageID(parent)] = true
+		}
+	}
+
+	msgs := make([]state.MessageID, 0)
+	for id, hasChildren := range hasChildren {
+		if hasChildren {
+			continue
+		}
+
+		msgs = append(msgs, id)
 	}
 
 	return msgs
-}
-
-func remove(s []state.MessageID, i int) []state.MessageID {
-	s[len(s)-1], s[i] = s[i], s[len(s)-1]
-	return s[:len(s)-1]
 }
