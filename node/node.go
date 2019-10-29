@@ -538,10 +538,13 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		return err
 	}
 
-	err = n.store.Add(&msg)
-	if err != nil {
-		return err
-		// @todo process, should this function ever even have an error?
+	isEphemeral := true
+	if msg.Metadata == nil || !msg.Metadata.Ephemeral {
+		isEphemeral = false
+		err = n.store.Add(&msg)
+		if err != nil {
+			return err
+		}
 	}
 
 	peers, err := n.peers.GetByGroupID(groupID)
@@ -556,7 +559,7 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 		}
 
 		t := state.OFFER
-		if n.mode == BATCH || (msg.Metadata != nil && msg.Metadata.Ephemeral) {
+		if n.mode == BATCH || isEphemeral {
 			t = state.MESSAGE
 		}
 
