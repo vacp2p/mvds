@@ -54,6 +54,7 @@ func (p *persistentMessageStore) Add(message *protobuf.Message) error {
 
 		stmt, err := tx.Prepare(query[0:len(query)-1])
 		if err != nil {
+			_ = tx.Rollback()
 			return err
 		}
 
@@ -88,9 +89,10 @@ func (p *persistentMessageStore) Get(id state.MessageID) (*protobuf.Message, err
 		return nil, err
 	}
 
+	defer rows.Close()
+
 	var parent []byte
 
-	defer rows.Close()
 	for rows.Next() {
 		err := rows.Scan(&parent)
 		if err != nil {
@@ -135,9 +137,10 @@ func (p *persistentMessageStore) GetMessagesWithoutChildren(id state.GroupID) ([
 		return nil, err
 	}
 
+	defer rows.Close()
+
 	var parent state.MessageID
 
-	defer rows.Close()
 	for rows.Next() {
 		err := rows.Scan(&parent)
 		if err != nil {
