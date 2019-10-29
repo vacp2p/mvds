@@ -39,7 +39,7 @@ func (p *persistentMessageStore) Add(message *protobuf.Message) error {
 	)
 
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
@@ -59,7 +59,7 @@ func (p *persistentMessageStore) Add(message *protobuf.Message) error {
 
 		_, err = stmt.Exec(vals...)
 		if err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 	}

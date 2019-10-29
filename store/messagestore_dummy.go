@@ -45,7 +45,7 @@ func (ds *DummyStore) Add(message *protobuf.Message) error {
 }
 
 func (ds *DummyStore) GetMessagesWithoutChildren(group state.GroupID) ([]state.MessageID, error) {
-	hasChildren := make(map[state.MessageID]bool, 0)
+	hasChildren := make(map[state.MessageID]bool)
 
 	for id, msg := range ds.ms {
 		if state.ToGroupID(msg.GroupId) != group {
