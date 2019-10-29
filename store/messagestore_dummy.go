@@ -52,17 +52,10 @@ func (ds *DummyStore) GetMessagesWithoutChildren(group state.GroupID) []state.Me
 			continue
 		}
 
-		if msg.Metadata == nil {
-			continue
-		}
-
-		// we do this because ephemeral messages are not allowed to be linked as a parent
-		if msg.Metadata.Ephemeral == true {
-			hasChildren[id] = true
-		}
-
-		for _, parent := range msg.Metadata.Parents {
-			hasChildren[state.ToMessageID(parent)] = true
+		if msg.Metadata != nil {
+			for _, parent := range msg.Metadata.Parents {
+				hasChildren[state.ToMessageID(parent)] = true
+			}
 		}
 
 		if hasChildren[id] {
