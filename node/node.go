@@ -602,13 +602,13 @@ func (n *Node) resolve(sender state.PeerID, msg protobuf.Message) {
 			n.insertSyncState(nil, pid, sender, state.REQUEST)
 			unresolved++
 
-			if n.resolution == CONSISTENT {
+			if n.resolution == ConsistentMode {
 				n.dependencies.Add(id, pid)
 			}
 		}
 
 		// if its eventual we don't need to wait for resolving
-		if n.resolution == CONSISTENT && unresolved > 0 {
+		if n.resolution == ConsistentMode && unresolved > 0 {
 			return
 		}
 	}

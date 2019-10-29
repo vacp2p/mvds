@@ -82,7 +82,7 @@ func (p *persistentMessageStore) Get(id state.MessageID) (*protobuf.Message, err
 		return nil, err
 	}
 
-	message.Metadata = &protobuf.Metadata{Ephemeral: false, Parents: make([][]byte, 0)}
+	message.Metadata = &protobuf.Metadata{Ephemeral: false}
 
 	rows, err := p.db.Query(`SELECT parent FROM mvds_parents WHERE message = ?`, id[:])
 	if err != nil {
