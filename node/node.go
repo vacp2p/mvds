@@ -267,15 +267,6 @@ func (n *Node) RequestMessage(group state.GroupID, id state.MessageID) error {
 	}
 
 	for _, p := range peers {
-		exist, err := n.IsPeerInGroup(group, p)
-		if err != nil {
-			return err
-		}
-
-		if exist {
-			continue
-		}
-
 		n.insertSyncState(&group, id, p, state.REQUEST)
 	}
 
