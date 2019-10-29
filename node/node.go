@@ -288,7 +288,7 @@ func (n *Node) AppendMessageWithMetadata(groupID state.GroupID, data []byte, met
 		n.insertSyncState(&groupID, id, p, t)
 	}
 
-	n.logger.Debug("Sending message",
+	n.logger.Debug("Appending Message to Sync State",
 		zap.String("node", hex.EncodeToString(n.ID[:4])),
 		zap.String("groupID", hex.EncodeToString(groupID[:4])),
 		zap.String("id", hex.EncodeToString(id[:4])))
