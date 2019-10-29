@@ -32,7 +32,7 @@ const (
 type ResolutionMode int
 
 const (
-	EVENTUAL ResolutionMode = iota
+	EventualMode ResolutionMode = iota + 1
 	CONSISTENT
 )
 
