@@ -44,7 +44,7 @@ func (ds *DummyStore) Add(message *protobuf.Message) error {
 	return nil
 }
 
-func (ds *DummyStore) GetMessagesWithoutChildren(group state.GroupID) []state.MessageID {
+func (ds *DummyStore) GetMessagesWithoutChildren(group state.GroupID) ([]state.MessageID, error) {
 	hasChildren := make(map[state.MessageID]bool, 0)
 
 	for id, msg := range ds.ms {
@@ -74,5 +74,5 @@ func (ds *DummyStore) GetMessagesWithoutChildren(group state.GroupID) []state.Me
 		msgs = append(msgs, id)
 	}
 
-	return msgs
+	return msgs, nil
 }
