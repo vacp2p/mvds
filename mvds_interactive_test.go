@@ -68,6 +68,7 @@ func (s *MVDSInteractiveSuite) TearDownTest() {
 }
 
 func (s *MVDSInteractiveSuite) TestInteractiveMode() {
+	subscription := s.client2.Subscribe()
 	messageID, err := s.client1.AppendMessage(s.groupID, []byte("message 1"))
 	s.Require().NoError(err)
 
@@ -87,11 +88,10 @@ func (s *MVDSInteractiveSuite) TestInteractiveMode() {
 		return err == nil && len(states) == 1 && states[0].Type == state.REQUEST
 	}, 1*time.Second, 10*time.Millisecond, "An request is stored in the state")
 
-	// Check we eventually get the message
-	s.Require().Eventually(func() bool {
-		message1Receiver, err := s.ds1.Get(messageID)
-		return err == nil && message1Receiver != nil
-	}, 1*time.Second, 10*time.Millisecond, "The message is eventually received")
+	<-subscription
+	message1Receiver, err := s.ds2.Get(messageID)
+	s.Require().NoError(err)
+	s.Require().NotNil(message1Receiver)
 
 	// Check state is removed
 	s.Require().Eventually(func() bool {
