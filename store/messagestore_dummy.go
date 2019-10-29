@@ -43,3 +43,35 @@ func (ds *DummyStore) Add(message *protobuf.Message) error {
 	ds.ms[message.ID()] = message
 	return nil
 }
+
+func (ds *DummyStore) GetMessagesWithoutChildren(id state.GroupID) []state.MessageID {
+	msgs := make([]state.MessageID, 0)
+
+	for msgid, msg := range ds.ms {
+		if state.ToGroupID(msg.GroupId) != id {
+			continue
+		}
+
+		if msg.Metadata == nil {
+			continue
+		}
+
+		for _, parent := range msg.Metadata.Parents {
+			for i, p := range msgs {
+				if p == state.ToMessageID(parent) {
+					msgs = remove(msgs, i)
+					break
+				}
+			}
+		}
+
+		msgs = append(msgs, msgid)
+	}
+
+	return msgs
+}
+
+func remove(s []state.MessageID, i int) []state.MessageID {
+	s[len(s)-1], s[i] = s[i], s[len(s)-1]
+	return s[:len(s)-1]
+}

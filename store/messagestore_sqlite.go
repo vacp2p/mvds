@@ -65,3 +65,7 @@ func (p *persistentMessageStore) Has(id state.MessageID) (bool, error) {
 		return false, err
 	}
 }
+
+func (p *persistentMessageStore) GetMessagesWithoutChildren(id state.GroupID) []state.MessageID {
+	return nil
+}

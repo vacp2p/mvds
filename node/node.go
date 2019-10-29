@@ -405,7 +405,7 @@ func (n *Node) onPayload(sender state.PeerID, payload protobuf.Payload) {
 
 func (n *Node) onOffer(sender state.PeerID, offers [][]byte) error {
 	for _, raw := range offers {
-		id := toMessageID(raw)
+		id := state.ToMessageID(raw)
 		n.logger.Debug("OFFER received",
 			zap.String("from", hex.EncodeToString(sender[:4])),
 			zap.String("to", hex.EncodeToString(n.ID[:4])),
@@ -429,7 +429,7 @@ func (n *Node) onOffer(sender state.PeerID, offers [][]byte) error {
 
 func (n *Node) onRequest(sender state.PeerID, requests [][]byte) error {
 	for _, raw := range requests {
-		id := toMessageID(raw)
+		id := state.ToMessageID(raw)
 		n.logger.Debug("REQUEST received",
 			zap.String("from", hex.EncodeToString(sender[:4])),
 			zap.String("to", hex.EncodeToString(n.ID[:4])),
@@ -446,7 +446,7 @@ func (n *Node) onRequest(sender state.PeerID, requests [][]byte) error {
 			continue
 		}
 
-		groupID := toGroupID(message.GroupId)
+		groupID := state.ToGroupID(message.GroupId)
 
 		exist, err := n.IsPeerInGroup(groupID, sender)
 		if err != nil {
@@ -469,7 +469,7 @@ func (n *Node) onRequest(sender state.PeerID, requests [][]byte) error {
 
 func (n *Node) onAck(sender state.PeerID, acks [][]byte) error {
 	for _, ack := range acks {
-		id := toMessageID(ack)
+		id := state.ToMessageID(ack)
 
 		err := n.syncState.Remove(id, sender)
 		if err != nil {
@@ -491,7 +491,7 @@ func (n *Node) onMessages(sender state.PeerID, messages []*protobuf.Message) [][
 	a := make([][]byte, 0)
 
 	for _, m := range messages {
-		groupID := toGroupID(m.GroupId)
+		groupID := state.ToGroupID(m.GroupId)
 		err := n.onMessage(sender, *m)
 		if err != nil {
 			n.logger.Error("Error processing message", zap.Error(err))
@@ -526,7 +526,7 @@ func (n *Node) onMessages(sender state.PeerID, messages []*protobuf.Message) [][
 // @todo cleanup this function
 func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 	id := msg.ID()
-	groupID := toGroupID(msg.GroupId)
+	groupID := state.ToGroupID(msg.GroupId)
 	n.logger.Debug("MESSAGE received",
 		zap.String("from", hex.EncodeToString(sender[:4])),
 		zap.String("to", hex.EncodeToString(n.ID[:4])),
@@ -581,7 +581,7 @@ func (n *Node) resolve(sender state.PeerID, msg protobuf.Message) {
 
 		unresolved := 0
 		for _, parent := range msg.Metadata.Parents {
-			pid := toMessageID(parent)
+			pid := state.ToMessageID(parent)
 
 			has, _ := n.store.Has(pid); if has {
 				continue
@@ -660,16 +660,4 @@ func (n *Node) updateSendEpoch(s state.State) state.State {
 	s.SendCount += 1
 	s.SendEpoch += n.nextEpoch(s.SendCount, n.epoch)
 	return s
-}
-
-func toMessageID(b []byte) state.MessageID {
-	var id state.MessageID
-	copy(id[:], b)
-	return id
-}
-
-func toGroupID(b []byte) state.GroupID {
-	var id state.GroupID
-	copy(id[:], b)
-	return id
 }
