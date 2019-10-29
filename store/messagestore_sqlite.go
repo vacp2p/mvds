@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"strings"
 
 	"github.com/vacp2p/mvds/state"
 
@@ -44,14 +45,16 @@ func (p *persistentMessageStore) Add(message *protobuf.Message) error {
 	}
 
 	if message.Metadata != nil && len(message.Metadata.Parents) > 0 {
-		query := "INSERT INTO mvds_parents(message, parent) VALUES "
+		var sb strings.Builder
+		sb.WriteString("INSERT INTO mvds_parents(message, parent) VALUES ")
 		vals := make([]interface{}, 0)
 
 		for _, row := range message.Metadata.Parents {
-			query += "(?, ?),"
+			sb.WriteString("(?, ?),")
 			vals = append(vals, id[:], row[:])
 		}
 
+		query := sb.String()
 		stmt, err := tx.Prepare(query[0:len(query)-1])
 		if err != nil {
 			_ = tx.Rollback()
