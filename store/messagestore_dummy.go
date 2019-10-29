@@ -64,6 +64,12 @@ func (ds *DummyStore) GetMessagesWithoutChildren(group state.GroupID) []state.Me
 		for _, parent := range msg.Metadata.Parents {
 			hasChildren[state.ToMessageID(parent)] = true
 		}
+
+		if hasChildren[id] {
+			continue
+		}
+
+		hasChildren[id] = false
 	}
 
 	msgs := make([]state.MessageID, 0)
