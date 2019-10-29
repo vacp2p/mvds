@@ -260,7 +260,7 @@ func (n *Node) AppendEphemeralMessage(groupID state.GroupID, data []byte) (state
 
 // AppendMessageWithMetadata sends a message to a given group with metadata.
 func (n *Node) AppendMessageWithMetadata(groupID state.GroupID, data []byte, metadata *protobuf.Metadata) (state.MessageID, error) {
-	m := protobuf.Message{
+	m := &protobuf.Message{
 		GroupId:   groupID[:],
 		Timestamp: time.Now().Unix(),
 		Body:      data,
@@ -269,7 +269,7 @@ func (n *Node) AppendMessageWithMetadata(groupID state.GroupID, data []byte, met
 
 	id := m.ID()
 
-	err := n.store.Add(&m)
+	err := n.store.Add(m)
 	if err != nil {
 		return state.MessageID{}, err
 	}
@@ -487,7 +487,7 @@ func (n *Node) onMessages(sender state.PeerID, messages []*protobuf.Message) [][
 
 	for _, m := range messages {
 		groupID := state.ToGroupID(m.GroupId)
-		err := n.onMessage(sender, *m)
+		err := n.onMessage(sender, m)
 		if err != nil {
 			n.logger.Error("Error processing message", zap.Error(err))
 			continue
@@ -519,7 +519,7 @@ func (n *Node) onMessages(sender state.PeerID, messages []*protobuf.Message) [][
 }
 
 // @todo cleanup this function
-func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
+func (n *Node) onMessage(sender state.PeerID, msg *protobuf.Message) error {
 	id := msg.ID()
 	groupID := state.ToGroupID(msg.GroupId)
 	n.logger.Debug("MESSAGE received",
@@ -534,7 +534,7 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 	}
 
 	if msg.Metadata == nil || !msg.Metadata.Ephemeral {
-		err = n.store.Add(&msg)
+		err = n.store.Add(msg)
 		if err != nil {
 			return err
 		}
@@ -550,7 +550,7 @@ func (n *Node) onMessage(sender state.PeerID, msg protobuf.Message) error {
 	return nil
 }
 
-func (n *Node) broadcastToGroup(group state.GroupID, sender state.PeerID, msg protobuf.Message) error {
+func (n *Node) broadcastToGroup(group state.GroupID, sender state.PeerID, msg *protobuf.Message) error {
 	p, err := n.peers.GetByGroupID(group)
 	if err != nil {
 		return err
@@ -577,7 +577,7 @@ func (n *Node) broadcastToGroup(group state.GroupID, sender state.PeerID, msg pr
 // @todo I do not think this will work, this needs be some recrusive function
 // @todo add method to select depth of how far we resolve dependencies
 
-func (n *Node) resolve(sender state.PeerID, msg protobuf.Message) {
+func (n *Node) resolve(sender state.PeerID, msg *protobuf.Message) {
 	id := msg.ID()
 
 	if msg.Metadata != nil && len(msg.Metadata.Parents) > 0 {
@@ -625,17 +625,17 @@ func (n *Node) resolve(sender state.PeerID, msg protobuf.Message) {
 		}
 
 		if msg != nil {
-			n.pushToSub(*msg)
+			n.pushToSub(msg)
 		}
 	}
 }
 
-func (n *Node) pushToSub(msg protobuf.Message) {
+func (n *Node) pushToSub(msg *protobuf.Message) {
 	if n.subscription == nil {
 		return
 	}
 
-	n.subscription <- msg
+	n.subscription <- *msg
 }
 
 func (n *Node) insertSyncState(groupID *state.GroupID, messageID state.MessageID, peerID state.PeerID, t state.RecordType) {
