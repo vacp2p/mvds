@@ -237,7 +237,13 @@ func (n *Node) Unsubscribe() {
 
 // AppendMessage sends a message to a given group.
 func (n *Node) AppendMessage(groupID state.GroupID, data []byte) (state.MessageID, error) {
-	return n.AppendMessageWithMetadata(groupID, data, nil)
+	parents := make([][]byte, 0)
+	p := n.store.GetMessagesWithoutChildren(groupID)
+	for _, id := range p {
+		parents = append(parents, id[:])
+	}
+
+	return n.AppendMessageWithMetadata(groupID, data, &protobuf.Metadata{Ephemeral: false, Parents: parents})
 }
 
 // AppendEphemeralMessage sends a message to a given group that has the `no_ack_required` flag set to `true`.
