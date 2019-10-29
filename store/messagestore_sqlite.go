@@ -77,6 +77,9 @@ func (p *persistentMessageStore) Get(id state.MessageID) (*protobuf.Message, err
 	); err != nil {
 		return nil, err
 	}
+
+	rows := p.db.Query()
+
 	return &message, nil
 }
 
@@ -98,17 +101,31 @@ func (p *persistentMessageStore) Has(id state.MessageID) (bool, error) {
 
 func (p *persistentMessageStore) GetMessagesWithoutChildren(id state.GroupID) ([]state.MessageID, error) {
 	result := make([]state.MessageID, 0)
-	err := p.db.QueryRow(
+	rows, err := p.db.Query(
 		`SELECT id FROM mvds_messages WHERE group_id = ? AND id NOT IN (SELECT parent FROM mvds_parents)`,
 		id[:],
-	).Scan(&result)
+	)
 
-	switch err {
-	case sql.ErrNoRows:
-		return nil, ErrMessageNotFound
-	case nil:
-		return result, nil
-	default:
+	if err != nil {
 		return nil, err
 	}
+
+	var parent state.MessageID
+
+	defer rows.Close()
+	for rows.Next() {
+		err := rows.Scan(&parent)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, parent)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
