@@ -238,7 +238,14 @@ func (n *Node) Unsubscribe() {
 // AppendMessage sends a message to a given group.
 func (n *Node) AppendMessage(groupID state.GroupID, data []byte) (state.MessageID, error) {
 	parents := make([][]byte, 0)
-	p := n.store.GetMessagesWithoutChildren(groupID)
+	p, err := n.store.GetMessagesWithoutChildren(groupID)
+	if err != nil {
+		n.logger.Error("Failed to retrieve parents",
+			zap.String("groupID", hex.EncodeToString(groupID[:4])),
+			zap.Error(err),
+		)
+	}
+
 	for _, id := range p {
 		parents = append(parents, id[:])
 	}
