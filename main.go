@@ -31,7 +31,7 @@ func parseFlags() {
 	flag.IntVar(&communicating, "communicating", 2, "amount of nodes sending messages")
 	flag.IntVar(&sharing, "sharing", 2, "amount of nodes each node shares with")
 	flag.Int64Var(&interval, "interval", 5, "seconds between messages")
-	flag.IntVar(&interactive, "interactive", 3, "amount of nodes to use INTERACTIVE mode, the rest will be BATCH") // @todo should probably just be how many nodes are interactive
+	flag.IntVar(&interactive, "interactive", 3, "amount of nodes to use InteractiveMode mode, the rest will be BatchMode") // @todo should probably just be how many nodes are interactive
 	flag.Parse()
 }
 
@@ -51,9 +51,9 @@ func main() {
 		input = append(input, in)
 		transports = append(transports, t)
 
-		mode := node.INTERACTIVE
+		mode := node.InteractiveMode
 		if i+1 >= interactive {
-			mode = node.BATCH
+			mode = node.BatchMode
 		}
 
 		node, err := createNode(t, peerID(), mode)

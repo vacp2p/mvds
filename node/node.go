@@ -25,14 +25,17 @@ import (
 type Mode int
 
 const (
-	INTERACTIVE Mode = iota
-	BATCH
+	InteractiveMode Mode = iota
+	BatchMode
 )
 
+// ResolutionMode defines how message dependencies should be resolved.
 type ResolutionMode int
 
 const (
+	// EventualMode is non-blocking and will return messages before dependencies are resolved.
 	EventualMode ResolutionMode = iota + 1
+	// ConsistentMode blocks and does not return messages until dependencies have been resolved.
 	ConsistentMode
 )
 
@@ -564,7 +567,7 @@ func (n *Node) broadcastToGroup(group state.GroupID, sender state.PeerID, msg *p
 		}
 
 		t := state.OFFER
-		if n.mode == BATCH || (msg.Metadata == nil && !msg.Metadata.Ephemeral) {
+		if n.mode == BatchMode || (msg.Metadata == nil && !msg.Metadata.Ephemeral) {
 			t = state.MESSAGE
 		}
 
