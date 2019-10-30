@@ -47,7 +47,7 @@ func (p *persistentMessageStore) Add(message *protobuf.Message) error {
 	if message.Metadata != nil && len(message.Metadata.Parents) > 0 {
 		var sb strings.Builder
 		sb.WriteString("INSERT INTO mvds_parents(message, parent) VALUES ")
-		vals := make([]interface{}, 0)
+		var vals []interface{}
 
 		for _, row := range message.Metadata.Parents {
 			sb.WriteString("(?, ?),")
