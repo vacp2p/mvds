@@ -590,56 +590,7 @@ func (n *Node) resolve(sender state.PeerID, msg *protobuf.Message) {
 		return
 	}
 
-	//id := msg.ID()
-	//
-	//if msg.Metadata != nil && len(msg.Metadata.Parents) > 0 {
-	//
-	//	unresolved := 0
-	//	for _, parent := range msg.Metadata.Parents {
-	//		pid := state.ToMessageID(parent)
-	//
-	//		if has, _ := n.store.Has(pid); has {
-	//			continue
-	//		}
-	//
-	//		n.insertSyncState(nil, pid, sender, state.REQUEST)
-	//		unresolved++
-	//
-	//		if n.resolution == ConsistentMode {
-	//			n.dependencies.Add(id, pid)
-	//		}
-	//	}
-	//
-	//	// if its eventual we don't need to wait for resolving
-	//	if n.resolution == ConsistentMode && unresolved > 0 {
-	//		return
-	//	}
-	//}
-	//
-	//n.pushToSub(msg)
-	//
-	//dependants := n.dependencies.Dependants(id)
-	//for _, dependant := range dependants {
-	//	n.dependencies.MarkResolved(dependant, id)
-	//
-	//	if n.dependencies.HasUnresolvedDependencies(dependant) {
-	//		continue
-	//	}
-	//
-	//	// @todo should this be replaced with a call to resolve?
-	//
-	//	msg, err := n.store.Get(dependant)
-	//	if err != nil {
-	//		n.logger.Error("error getting message",
-	//			zap.Error(err),
-	//			zap.String("messageID", hex.EncodeToString(dependant[:4])),
-	//		)
-	//	}
-	//
-	//	if msg != nil {
-	//		n.pushToSub(msg)
-	//	}
-	//}
+	n.resolveConsistently(sender, msg)
 }
 
 func (n *Node) resolveEventually(sender state.PeerID, msg *protobuf.Message) {
@@ -681,6 +632,25 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 		}
 	}
 
+	hasUnresolvedDependencies := false
+	for _, parent := range msg.Metadata.Parents {
+		pid := state.ToMessageID(parent)
+
+		if has, _ := n.store.Has(pid); has {
+			continue
+		}
+
+		n.insertSyncState(nil, pid, sender, state.REQUEST)
+		hasUnresolvedDependencies = true
+
+		n.dependencies.Add(id, pid)
+	}
+
+	if hasUnresolvedDependencies {
+		return
+	}
+
+	n.pushToSub(msg)
 }
 
 func (n *Node) pushToSub(msg *protobuf.Message) {
