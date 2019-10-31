@@ -632,6 +632,8 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 		}
 	}
 
+	// @todo add parent dependencies to child, then we can have multiple levels?
+
 	hasUnresolvedDependencies := false
 	for _, parent := range msg.Metadata.Parents {
 		pid := state.ToMessageID(parent)
