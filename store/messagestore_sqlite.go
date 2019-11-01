@@ -142,7 +142,7 @@ func (p *persistentMessageStore) GetMessagesWithoutChildren(id state.GroupID) ([
 
 	defer rows.Close()
 
-	var parent state.MessageID
+	var parent []byte
 
 	for rows.Next() {
 		err := rows.Scan(&parent)
@@ -150,7 +150,7 @@ func (p *persistentMessageStore) GetMessagesWithoutChildren(id state.GroupID) ([
 			return nil, err
 		}
 
-		result = append(result, parent)
+		result = append(result, state.ToMessageID(parent))
 	}
 
 	err = rows.Err()

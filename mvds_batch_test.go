@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
+	"github.com/vacp2p/mvds/dependency"
 	"github.com/vacp2p/mvds/node"
 	"github.com/vacp2p/mvds/peers"
 	"github.com/vacp2p/mvds/state"
@@ -40,7 +41,7 @@ func (s *MVDSBatchSuite) SetupTest() {
 	s.state1 = state.NewSyncState()
 	s.peers1 = peers.NewMemoryPersistence()
 	p1 := [65]byte{0x01}
-	s.client1 = node.NewNode(s.ds1, t1, s.state1, Calc, 0, p1, node.BatchMode, s.peers1, node.EventualMode, logger)
+	s.client1 = node.NewNode(s.ds1, t1, s.state1, Calc, 0, p1, node.BatchMode, s.peers1, dependency.NewDummyDependency(), node.EventualMode, logger)
 
 	in2 := make(chan transport.Packet)
 	t2 := transport.NewChannelTransport(0, in2)
@@ -48,7 +49,7 @@ func (s *MVDSBatchSuite) SetupTest() {
 	s.state2 = state.NewSyncState()
 	p2 := [65]byte{0x02}
 	s.peers2 = peers.NewMemoryPersistence()
-	s.client2 = node.NewNode(s.ds2, t2, s.state2, Calc, 0, p2, node.BatchMode, s.peers2, node.EventualMode, logger)
+	s.client2 = node.NewNode(s.ds2, t2, s.state2, Calc, 0, p2, node.BatchMode, s.peers2, dependency.NewDummyDependency(), node.EventualMode, logger)
 
 	t2.AddOutput(p1, in1)
 	t1.AddOutput(p2, in2)
