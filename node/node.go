@@ -620,7 +620,10 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 	// We push any messages whose parents have now been resolved
 	dependants, err := n.dependencies.Dependants(id)
 	if err != nil {
-		// @todo
+		n.logger.Error("error getting dependants",
+			zap.Error(err),
+			zap.String("msg", hex.EncodeToString(id[:4])),
+		)
 	}
 
 	for _, dependant := range dependants {
