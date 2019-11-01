@@ -8,6 +8,7 @@ import (
 	math "math/rand"
 	"time"
 
+	"github.com/vacp2p/mvds/dependency"
 	"github.com/vacp2p/mvds/node"
 	"github.com/vacp2p/mvds/peers"
 	"github.com/vacp2p/mvds/state"
@@ -128,6 +129,7 @@ func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) 
 		id,
 		mode,
 		peers.NewMemoryPersistence(),
+		dependency.NewDummyDependency(),
 		node.EventualMode,
 		logger,
 	), nil

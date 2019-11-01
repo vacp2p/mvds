@@ -99,6 +99,7 @@ func NewPersistentNode(
 		payloads:         newPayloads(),
 		epochPersistence: newEpochSQLitePersistence(db),
 		nextEpoch:        nextEpoch,
+		dependencies:     dependency.NewPersistentDependency(db),
 		logger:           logger.With(zap.Namespace("mvds")),
 		mode:             mode,
 		resolution:       resolution,
@@ -125,18 +126,19 @@ func NewEphemeralNode(
 	}
 
 	return &Node{
-		ID:        id,
-		ctx:       ctx,
-		cancel:    cancel,
-		store:     store.NewDummyStore(),
-		transport: t,
-		syncState: state.NewSyncState(),
-		peers:     peers.NewMemoryPersistence(),
-		payloads:  newPayloads(),
-		nextEpoch: nextEpoch,
-		epoch:     currentEpoch,
-		logger:    logger.With(zap.Namespace("mvds")),
-		mode:      mode,
+		ID:           id,
+		ctx:          ctx,
+		cancel:       cancel,
+		store:        store.NewDummyStore(),
+		transport:    t,
+		syncState:    state.NewSyncState(),
+		peers:        peers.NewMemoryPersistence(),
+		payloads:     newPayloads(),
+		dependencies: dependency.NewDummyDependency(),
+		nextEpoch:    nextEpoch,
+		epoch:        currentEpoch,
+		logger:       logger.With(zap.Namespace("mvds")),
+		mode:         mode,
 	}
 }
 
@@ -150,6 +152,7 @@ func NewNode(
 	id state.PeerID,
 	mode Mode,
 	pp peers.Persistence,
+	md dependency.MessageDependency,
 	resolution ResolutionMode,
 	logger *zap.Logger,
 ) *Node {
@@ -159,20 +162,20 @@ func NewNode(
 	}
 
 	return &Node{
-		ctx:        ctx,
-		cancel:     cancel,
-		store:      ms,
-		transport:  st,
-		syncState:  ss,
-		peers:      pp,
-		payloads:   newPayloads(),
-		nextEpoch:  nextEpoch,
-		ID:         id,
-		epoch:      currentEpoch,
-		logger:     logger.With(zap.Namespace("mvds")),
-		mode:       mode,
-		dependencies: dependency.NewDummyDependency(),
-		resolution: resolution,
+		ctx:          ctx,
+		cancel:       cancel,
+		store:        ms,
+		transport:    st,
+		syncState:    ss,
+		peers:        pp,
+		payloads:     newPayloads(),
+		nextEpoch:    nextEpoch,
+		ID:           id,
+		epoch:        currentEpoch,
+		logger:       logger.With(zap.Namespace("mvds")),
+		mode:         mode,
+		dependencies: md,
+		resolution:   resolution,
 	}
 }
 
@@ -615,11 +618,30 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 	id := msg.ID()
 
 	// We push any messages whose parents have now been resolved
-	dependants := n.dependencies.Dependants(id)
-	for _, dependant := range dependants {
-		n.dependencies.MarkResolved(dependant, id)
+	dependants, err := n.dependencies.Dependants(id)
+	if err != nil {
+		// @todo
+	}
 
-		if n.dependencies.HasUnresolvedDependencies(dependant) {
+	for _, dependant := range dependants {
+		err := n.dependencies.MarkResolved(dependant, id)
+		if err != nil {
+			n.logger.Error("error marking resolved dependency",
+				zap.Error(err),
+				zap.String("msg", hex.EncodeToString(dependant[:4])),
+				zap.String("dependency", hex.EncodeToString(id[:4])),
+			)
+		}
+
+		has, err := n.dependencies.HasUnresolvedDependencies(dependant)
+		if err != nil {
+			n.logger.Error("error getting unresolved dependencies",
+				zap.Error(err),
+				zap.String("msg", hex.EncodeToString(dependant[:4])),
+			)
+		}
+
+		if has {
 			continue
 		}
 
@@ -649,7 +671,14 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 		n.insertSyncState(nil, pid, sender, state.REQUEST)
 		hasUnresolvedDependencies = true
 
-		n.dependencies.Add(id, pid)
+		err := n.dependencies.Add(id, pid)
+		if err != nil {
+			n.logger.Error("error adding dependency",
+				zap.Error(err),
+				zap.String("msg", hex.EncodeToString(id[:4])),
+				zap.String("dependency", hex.EncodeToString(pid[:4])),
+			)
+		}
 	}
 
 	if hasUnresolvedDependencies {

@@ -5,8 +5,8 @@ import (
 )
 
 type MessageDependency interface {
-	Add(msg, dependency state.MessageID)
-	Dependants(id state.MessageID) []state.MessageID
-	MarkResolved(msg state.MessageID, dependency state.MessageID)
-	HasUnresolvedDependencies(id state.MessageID) bool
+	Add(msg, dependency state.MessageID) error
+	Dependants(id state.MessageID) ([]state.MessageID, error)
+	MarkResolved(msg state.MessageID, dependency state.MessageID) error
+	HasUnresolvedDependencies(id state.MessageID) (bool, error)
 }

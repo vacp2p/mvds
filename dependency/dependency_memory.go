@@ -6,6 +6,9 @@ import (
 	"github.com/vacp2p/mvds/state"
 )
 
+// Verify that MessageDependency interface is implemented.
+var _ MessageDependency = (*memoryDependency)(nil)
+
 type memoryDependency struct {
 	sync.Mutex
 
@@ -21,22 +24,23 @@ func NewDummyDependency() *memoryDependency {
 	}
 }
 
-func (md *memoryDependency) Add(msg, dependency state.MessageID) {
+func (md *memoryDependency) Add(msg, dependency state.MessageID) error {
 	md.Lock()
 	defer md.Unlock()
 	// @todo check it wasn't already added
 	md.dependents[dependency] = append(md.dependents[dependency], msg)
 	md.dependencies[msg] += 1
+	return nil
 }
 
-func (md *memoryDependency) Dependants(id state.MessageID) []state.MessageID {
+func (md *memoryDependency) Dependants(id state.MessageID) ([]state.MessageID, error) {
 	md.Lock()
 	defer md.Unlock()
 
-	return md.dependents[id]
+	return md.dependents[id], nil
 }
 
-func (md *memoryDependency) MarkResolved(msg state.MessageID, dependency state.MessageID) {
+func (md *memoryDependency) MarkResolved(msg state.MessageID, dependency state.MessageID) error {
 	md.Lock()
 	defer md.Unlock()
 
@@ -49,18 +53,19 @@ func (md *memoryDependency) MarkResolved(msg state.MessageID, dependency state.M
 	}
 
 	if id == -1 {
-		return
+		return nil
 	}
 
 	md.dependents[dependency] = remove(md.dependents[dependency], id)
 	md.dependencies[msg] -= 1
+	return nil
 }
 
-func (md *memoryDependency) HasUnresolvedDependencies(id state.MessageID) bool {
+func (md *memoryDependency) HasUnresolvedDependencies(id state.MessageID) (bool, error) {
 	md.Lock()
 	defer md.Unlock()
 
-	return len(md.dependencies) > 0
+	return len(md.dependencies) > 0, nil
 }
 
 func remove(s []state.MessageID, i int) []state.MessageID {
