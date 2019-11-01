@@ -14,6 +14,13 @@ type memoryDependency struct {
 
 }
 
+func NewDummyDependency() *memoryDependency {
+	return &memoryDependency{
+		dependents: make(map[state.MessageID][]state.MessageID),
+		dependencies: make(map[state.MessageID]int),
+	}
+}
+
 func (md *memoryDependency) Add(msg, dependency state.MessageID) {
 	md.Lock()
 	defer md.Unlock()

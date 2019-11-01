@@ -150,6 +150,7 @@ func NewNode(
 	id state.PeerID,
 	mode Mode,
 	pp peers.Persistence,
+	resolution ResolutionMode,
 	logger *zap.Logger,
 ) *Node {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -158,18 +159,20 @@ func NewNode(
 	}
 
 	return &Node{
-		ctx:       ctx,
-		cancel:    cancel,
-		store:     ms,
-		transport: st,
-		syncState: ss,
-		peers:     pp,
-		payloads:  newPayloads(),
-		nextEpoch: nextEpoch,
-		ID:        id,
-		epoch:     currentEpoch,
-		logger:    logger.With(zap.Namespace("mvds")),
-		mode:      mode,
+		ctx:        ctx,
+		cancel:     cancel,
+		store:      ms,
+		transport:  st,
+		syncState:  ss,
+		peers:      pp,
+		payloads:   newPayloads(),
+		nextEpoch:  nextEpoch,
+		ID:         id,
+		epoch:      currentEpoch,
+		logger:     logger.With(zap.Namespace("mvds")),
+		mode:       mode,
+		dependencies: dependency.NewDummyDependency(),
+		resolution: resolution,
 	}
 }
 
@@ -548,7 +551,7 @@ func (n *Node) onMessage(sender state.PeerID, msg *protobuf.Message) error {
 		return err
 	}
 
-	n.pushToSub(msg)
+	n.resolve(sender, msg)
 
 	return nil
 }
@@ -582,6 +585,7 @@ func (n *Node) broadcastToGroup(group state.GroupID, sender state.PeerID, msg *p
 
 func (n *Node) resolve(sender state.PeerID, msg *protobuf.Message) {
 	if msg.Metadata == nil || len(msg.Metadata.Parents) == 0 {
+		n.pushToSub(msg)
 		return
 	}
 
