@@ -114,7 +114,7 @@ OUTER:
 }
 
 func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) (*node.Node, error) {
-	ds := store.NewDummyStore()
+	ds := store.NewMemoryMessageStore()
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		return nil, err
@@ -123,13 +123,13 @@ func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) 
 	return node.NewNode(
 		ds,
 		transport,
-		state.NewSyncState(),
+		state.NewMemorySyncState(),
 		Calc,
 		0,
 		id,
 		mode,
 		peers.NewMemoryPersistence(),
-		dependency.NewDummyDependency(),
+		dependency.NewMemoryDependency(),
 		node.EventualMode,
 		logger,
 	), nil

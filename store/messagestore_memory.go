@@ -8,16 +8,16 @@ import (
 	"github.com/vacp2p/mvds/state"
 )
 
-type DummyStore struct {
+type memoryMessageStore struct {
 	sync.Mutex
 	ms map[state.MessageID]*protobuf.Message
 }
 
-func NewDummyStore() *DummyStore {
-	return &DummyStore{ms: make(map[state.MessageID]*protobuf.Message)}
+func NewMemoryMessageStore() *memoryMessageStore {
+	return &memoryMessageStore{ms: make(map[state.MessageID]*protobuf.Message)}
 }
 
-func (ds *DummyStore) Has(id state.MessageID) (bool, error) {
+func (ds *memoryMessageStore) Has(id state.MessageID) (bool, error) {
 	ds.Lock()
 	defer ds.Unlock()
 
@@ -25,7 +25,7 @@ func (ds *DummyStore) Has(id state.MessageID) (bool, error) {
 	return ok, nil
 }
 
-func (ds *DummyStore) Get(id state.MessageID) (*protobuf.Message, error) {
+func (ds *memoryMessageStore) Get(id state.MessageID) (*protobuf.Message, error) {
 	ds.Lock()
 	defer ds.Unlock()
 
@@ -37,14 +37,14 @@ func (ds *DummyStore) Get(id state.MessageID) (*protobuf.Message, error) {
 	return m, nil
 }
 
-func (ds *DummyStore) Add(message *protobuf.Message) error {
+func (ds *memoryMessageStore) Add(message *protobuf.Message) error {
 	ds.Lock()
 	defer ds.Unlock()
 	ds.ms[message.ID()] = message
 	return nil
 }
 
-func (ds *DummyStore) GetMessagesWithoutChildren(group state.GroupID) ([]state.MessageID, error) {
+func (ds *memoryMessageStore) GetMessagesWithoutChildren(group state.GroupID) ([]state.MessageID, error) {
 	ds.Lock()
 	defer ds.Unlock()
 

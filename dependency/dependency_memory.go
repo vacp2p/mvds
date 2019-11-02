@@ -17,7 +17,7 @@ type memoryDependency struct {
 
 }
 
-func NewDummyDependency() *memoryDependency {
+func NewMemoryDependency() *memoryDependency {
 	return &memoryDependency{
 		dependents: make(map[state.MessageID][]state.MessageID),
 		dependencies: make(map[state.MessageID]int),

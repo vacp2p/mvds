@@ -37,19 +37,19 @@ func (s *MVDSBatchSuite) SetupTest() {
 
 	in1 := make(chan transport.Packet)
 	t1 := transport.NewChannelTransport(0, in1)
-	s.ds1 = store.NewDummyStore()
-	s.state1 = state.NewSyncState()
+	s.ds1 = store.NewMemoryMessageStore()
+	s.state1 = state.NewMemorySyncState()
 	s.peers1 = peers.NewMemoryPersistence()
 	p1 := [65]byte{0x01}
-	s.client1 = node.NewNode(s.ds1, t1, s.state1, Calc, 0, p1, node.BatchMode, s.peers1, dependency.NewDummyDependency(), node.EventualMode, logger)
+	s.client1 = node.NewNode(s.ds1, t1, s.state1, Calc, 0, p1, node.BatchMode, s.peers1, dependency.NewMemoryDependency(), node.EventualMode, logger)
 
 	in2 := make(chan transport.Packet)
 	t2 := transport.NewChannelTransport(0, in2)
-	s.ds2 = store.NewDummyStore()
-	s.state2 = state.NewSyncState()
+	s.ds2 = store.NewMemoryMessageStore()
+	s.state2 = state.NewMemorySyncState()
 	p2 := [65]byte{0x02}
 	s.peers2 = peers.NewMemoryPersistence()
-	s.client2 = node.NewNode(s.ds2, t2, s.state2, Calc, 0, p2, node.BatchMode, s.peers2, dependency.NewDummyDependency(), node.EventualMode, logger)
+	s.client2 = node.NewNode(s.ds2, t2, s.state2, Calc, 0, p2, node.BatchMode, s.peers2, dependency.NewMemoryDependency(), node.EventualMode, logger)
 
 	t2.AddOutput(p1, in1)
 	t1.AddOutput(p2, in2)
