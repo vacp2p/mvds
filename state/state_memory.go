@@ -10,7 +10,7 @@ type memorySyncState struct {
 	state []State
 }
 
-func NewSyncState() *memorySyncState {
+func NewMemorySyncState() *memorySyncState {
 	return &memorySyncState{}
 }
 
