@@ -4,7 +4,7 @@ import (
 	"github.com/vacp2p/mvds/state"
 )
 
-type MessageDependency interface {
+type Tracker interface {
 	Add(msg, dependency state.MessageID) error
 	Dependants(id state.MessageID) ([]state.MessageID, error)
 	MarkResolved(msg state.MessageID, dependency state.MessageID) error

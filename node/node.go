@@ -25,7 +25,7 @@ import (
 type Mode int
 
 const (
-	InteractiveMode Mode = iota
+	InteractiveMode Mode = iota + 1
 	BatchMode
 )
 
@@ -58,7 +58,7 @@ type Node struct {
 
 	payloads payloads
 
-	dependencies dependency.MessageDependency
+	dependencies dependency.Tracker
 
 	nextEpoch CalculateNextEpoch
 
@@ -99,7 +99,7 @@ func NewPersistentNode(
 		payloads:         newPayloads(),
 		epochPersistence: newEpochSQLitePersistence(db),
 		nextEpoch:        nextEpoch,
-		dependencies:     dependency.NewPersistentDependency(db),
+		dependencies:     dependency.NewPersistentTracker(db),
 		logger:           logger.With(zap.Namespace("mvds")),
 		mode:             mode,
 		resolution:       resolution,
@@ -134,7 +134,7 @@ func NewEphemeralNode(
 		syncState:    state.NewMemorySyncState(),
 		peers:        peers.NewMemoryPersistence(),
 		payloads:     newPayloads(),
-		dependencies: dependency.NewMemoryDependency(),
+		dependencies: dependency.NewInMemoryTracker(),
 		nextEpoch:    nextEpoch,
 		epoch:        currentEpoch,
 		logger:       logger.With(zap.Namespace("mvds")),
@@ -152,7 +152,7 @@ func NewNode(
 	id state.PeerID,
 	mode Mode,
 	pp peers.Persistence,
-	md dependency.MessageDependency,
+	md dependency.Tracker,
 	resolution ResolutionMode,
 	logger *zap.Logger,
 ) *Node {

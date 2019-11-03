@@ -6,10 +6,10 @@ import (
 	"github.com/vacp2p/mvds/state"
 )
 
-// Verify that MessageDependency interface is implemented.
-var _ MessageDependency = (*memoryDependency)(nil)
+// Verify that Tracker interface is implemented.
+var _ Tracker = (*inMemoryTracker)(nil)
 
-type memoryDependency struct {
+type inMemoryTracker struct {
 	sync.Mutex
 
 	dependents map[state.MessageID][]state.MessageID
@@ -17,14 +17,14 @@ type memoryDependency struct {
 
 }
 
-func NewMemoryDependency() *memoryDependency {
-	return &memoryDependency{
+func NewInMemoryTracker() *inMemoryTracker {
+	return &inMemoryTracker{
 		dependents: make(map[state.MessageID][]state.MessageID),
 		dependencies: make(map[state.MessageID]int),
 	}
 }
 
-func (md *memoryDependency) Add(msg, dependency state.MessageID) error {
+func (md *inMemoryTracker) Add(msg, dependency state.MessageID) error {
 	md.Lock()
 	defer md.Unlock()
 	// @todo check it wasn't already added
@@ -33,35 +33,31 @@ func (md *memoryDependency) Add(msg, dependency state.MessageID) error {
 	return nil
 }
 
-func (md *memoryDependency) Dependants(id state.MessageID) ([]state.MessageID, error) {
+func (md *inMemoryTracker) Dependants(id state.MessageID) ([]state.MessageID, error) {
 	md.Lock()
 	defer md.Unlock()
 
 	return md.dependents[id], nil
 }
 
-func (md *memoryDependency) MarkResolved(msg state.MessageID, dependency state.MessageID) error {
+func (md *inMemoryTracker) MarkResolved(msg state.MessageID, dependency state.MessageID) error {
 	md.Lock()
 	defer md.Unlock()
 
-	id := -1
-	for i, val := range md.dependents[dependency] {
-		if val == msg {
-			id = i
+	for i, item := range md.dependents[dependency] {
+		if item == msg {
 			break
 		}
-	}
 
-	if id == -1 {
+		md.dependents[dependency] = remove(md.dependents[dependency], i)
+		md.dependencies[msg] -= 1
 		return nil
 	}
 
-	md.dependents[dependency] = remove(md.dependents[dependency], id)
-	md.dependencies[msg] -= 1
 	return nil
 }
 
-func (md *memoryDependency) HasUnresolvedDependencies(id state.MessageID) (bool, error) {
+func (md *inMemoryTracker) HasUnresolvedDependencies(id state.MessageID) (bool, error) {
 	md.Lock()
 	defer md.Unlock()
 

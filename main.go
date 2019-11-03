@@ -129,7 +129,7 @@ func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) 
 		id,
 		mode,
 		peers.NewMemoryPersistence(),
-		dependency.NewMemoryDependency(),
+		dependency.NewInMemoryTracker(),
 		node.EventualMode,
 		logger,
 	), nil

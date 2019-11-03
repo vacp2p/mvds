@@ -10,7 +10,7 @@ import (
 	"github.com/vacp2p/mvds/state"
 )
 
-func TestDependencySQLitePersistence(t *testing.T) {
+func TestTrackerSQLitePersistence(t *testing.T) {
 	tmpFile, err := ioutil.TempFile("", "")
 	require.NoError(t, err)
 	db, err := persistenceutil.Open(tmpFile.Name(), "", persistenceutil.MigrationConfig{
@@ -18,7 +18,7 @@ func TestDependencySQLitePersistence(t *testing.T) {
 		AssetGetter: migrations.Asset,
 	})
 	require.NoError(t, err)
-	d := NewPersistentDependency(db)
+	d := NewPersistentTracker(db)
 
 	msg := state.MessageID{0x01}
 	dependency := state.MessageID{0x02}
