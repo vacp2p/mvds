@@ -45,8 +45,8 @@ func (md *inMemoryTracker) MarkResolved(msg state.MessageID, dependency state.Me
 	defer md.Unlock()
 
 	for i, item := range md.dependents[dependency] {
-		if item == msg {
-			break
+		if item != msg {
+			continue
 		}
 
 		md.dependents[dependency] = remove(md.dependents[dependency], i)
