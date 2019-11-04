@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/vacp2p/mvds/dependency"
 	"github.com/vacp2p/mvds/node/internal"
 	"github.com/vacp2p/mvds/protobuf"
 	"github.com/vacp2p/mvds/state"
 	"github.com/vacp2p/mvds/store"
 )
-
 
 func TestNode_resolveEventually(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -55,6 +55,63 @@ func TestNode_resolveEventually(t *testing.T) {
 	if !reflect.DeepEqual(*msg, received) {
 		t.Error("expected message did not match received")
 	}
+}
+
+func TestNode_resolveConsistently(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	syncstate := internal.NewMockSyncState(ctrl)
+
+	node := Node{
+		syncState: syncstate,
+		store: store.NewMemoryMessageStore(),
+		dependencies: dependency.NewInMemoryTracker(),
+	}
+
+	channel := node.Subscribe()
+
+	peer := peerID()
+	group := groupID()
+
+	parent := &protobuf.Message{
+		GroupId: group[:],
+		Timestamp: time.Now().Unix(),
+		Body: []byte{0x02},
+	}
+
+	parentID := parent.ID()
+
+	msg := &protobuf.Message{
+		GroupId: group[:],
+		Timestamp: time.Now().Unix(),
+		Body: []byte{0x01},
+		Metadata: &protobuf.Metadata{Ephemeral: false, Parents: [][]byte{parentID[:]}},
+	}
+
+	// @todo we need to make sure to add the message cause we are going through a subset of the flow
+	node.store.Add(msg)
+
+	syncstate.EXPECT().Add(gomock.Any()).DoAndReturn(func(state.State) error {
+		return nil
+	})
+
+	node.resolveConsistently(peer, msg)
+
+	go node.resolveConsistently(peer, parent)
+
+	received := <-channel
+
+	if !reflect.DeepEqual(*msg, received) {
+		t.Error("expected message did not match received")
+	}
+
+	received = <-channel
+
+	if !reflect.DeepEqual(*parent, received) {
+		t.Error("expected message did not match received")
+	}
+
 }
 
 func peerID() (id state.PeerID) {

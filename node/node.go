@@ -587,11 +587,6 @@ func (n *Node) broadcastToGroup(group state.GroupID, sender state.PeerID, msg *p
 // @todo add method to select depth of how far we resolve dependencies
 
 func (n *Node) resolve(sender state.PeerID, msg *protobuf.Message) {
-	if msg.Metadata == nil || len(msg.Metadata.Parents) == 0 {
-		n.pushToSub(msg)
-		return
-	}
-
 	if n.resolution == EventualMode {
 		n.resolveEventually(sender, msg)
 		return
@@ -601,6 +596,11 @@ func (n *Node) resolve(sender state.PeerID, msg *protobuf.Message) {
 }
 
 func (n *Node) resolveEventually(sender state.PeerID, msg *protobuf.Message) {
+	if msg.Metadata == nil || len(msg.Metadata.Parents) == 0 {
+		n.pushToSub(msg)
+		return
+	}
+
 	for _, parent := range msg.Metadata.Parents {
 		pid := state.ToMessageID(parent)
 
@@ -663,6 +663,10 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 	}
 
 	// @todo add parent dependencies to child, then we can have multiple levels?
+	if msg.Metadata == nil || len(msg.Metadata.Parents) == 0 {
+		n.pushToSub(msg)
+		return
+	}
 
 	hasUnresolvedDependencies := false
 	for _, parent := range msg.Metadata.Parents {
@@ -695,11 +699,9 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 
 func (n *Node) pushToSub(msg *protobuf.Message) {
 	if n.subscription == nil {
-		fmt.Println("fuck me")
 		return
 	}
 
-	fmt.Println("fuck y")
 	n.subscription <- *msg
 }
 

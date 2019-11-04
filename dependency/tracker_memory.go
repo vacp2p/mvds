@@ -1,6 +1,7 @@
 package dependency
 
 import (
+	"reflect"
 	"sync"
 
 	"github.com/vacp2p/mvds/state"
@@ -45,7 +46,7 @@ func (md *inMemoryTracker) Resolve(msg state.MessageID, dependency state.Message
 	defer md.Unlock()
 
 	for i, item := range md.dependents[dependency] {
-		if item != msg {
+		if !reflect.DeepEqual(msg[:], item[:]) {
 			continue
 		}
 
@@ -61,7 +62,7 @@ func (md *inMemoryTracker) IsResolved(id state.MessageID) (bool, error) {
 	md.Lock()
 	defer md.Unlock()
 
-	return len(md.dependencies) == 0, nil
+	return md.dependencies[id] == 0, nil
 }
 
 func remove(s []state.MessageID, i int) []state.MessageID {
