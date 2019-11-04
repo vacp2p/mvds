@@ -2,6 +2,7 @@ package store
 
 import (
 	"io/ioutil"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -51,4 +52,59 @@ func TestPersistentMessageStore(t *testing.T) {
 	exists, err = p.Has(state.MessageID{0xff})
 	require.NoError(t, err)
 	require.False(t, exists)
+}
+
+func TestPersistentMessageStore_GetMessagesWithoutChildren(t *testing.T) {
+	tmpFile, err := ioutil.TempFile("", "")
+	require.NoError(t, err)
+	db, err := persistenceutil.Open(tmpFile.Name(), "", persistenceutil.MigrationConfig{
+		AssetNames:  migrations.AssetNames(),
+		AssetGetter: migrations.Asset,
+	})
+
+	require.NoError(t, err)
+	p := NewPersistentMessageStore(db)
+
+	group := groupId()
+
+	now := time.Now().Unix()
+	msg := &protobuf.Message{
+		GroupId:   group[:],
+		Timestamp: now,
+		Body:      []byte{0xaa, 0xbb, 0xcc},
+		Metadata: &protobuf.Metadata{Ephemeral: false, Parents: [][]byte{}},
+	}
+
+	err = p.Add(msg)
+	require.NoError(t, err)
+
+	id := msg.ID()
+
+	child := &protobuf.Message{
+		GroupId:   group[:],
+		Timestamp: now,
+		Body:      []byte{0xaa, 0xcc},
+		Metadata: &protobuf.Metadata{Ephemeral: false, Parents: [][]byte{id[:]}},
+	}
+
+	err = p.Add(child)
+	require.NoError(t, err)
+
+	msgs, err := p.GetMessagesWithoutChildren(group)
+	require.NoError(t, err)
+
+	if msgs[0] != child.ID() {
+		t.Errorf("not same \n expected %v \n actual: %v", msgs[0], child.ID())
+	}
+}
+
+
+func groupId() state.GroupID {
+	bytes := make([]byte, 32)
+	_, _ = rand.Read(bytes)
+
+	id := state.GroupID{}
+	copy(id[:], bytes)
+
+	return id
 }
