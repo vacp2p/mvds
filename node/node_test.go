@@ -2,6 +2,7 @@ package node
 
 import (
 	"crypto/rand"
+	"reflect"
 	"testing"
 	"time"
 
@@ -24,28 +25,36 @@ func TestNode_resolveEventually(t *testing.T) {
 		store: store.NewMemoryMessageStore(),
 	}
 
+	channel := node.Subscribe()
+
 	peer := peerID()
-
-	group := groupId()
-
-	parent := &protobuf.Message{
-		GroupId: group[:],
-		Timestamp: time.Now().Unix(),
-		Body: []byte{0x01},
-	}
-
-	parentID := parent.ID()
+	group := groupID()
+	parent := messageID()
 
 	msg := &protobuf.Message{
 		GroupId: group[:],
 		Timestamp: time.Now().Unix(),
 		Body: []byte{0x01},
-		Metadata: &protobuf.Metadata{Ephemeral: false, Parents: [][]byte{parentID[:]}},
+		Metadata: &protobuf.Metadata{Ephemeral: false, Parents: [][]byte{parent[:]}},
 	}
 
-	syncstate.EXPECT().Add(gomock.Any()).Return(nil)
+	expectedState := state.State{
+		GroupID:   &group,
+		MessageID: parent,
+		PeerID:    peer,
+		Type:      state.REQUEST,
+		SendEpoch: 1,
+	}
 
-	node.resolveEventually(peer, msg)
+	syncstate.EXPECT().Add(expectedState).Return(nil)
+
+	go node.resolveEventually(peer, msg)
+
+	received := <-channel
+
+	if !reflect.DeepEqual(*msg, received) {
+		t.Error("expected message did not match received")
+	}
 }
 
 func peerID() (id state.PeerID) {
@@ -53,7 +62,12 @@ func peerID() (id state.PeerID) {
 	return id
 }
 
-func groupId() (id state.GroupID) {
+func groupID() (id state.GroupID) {
+	_, _ = rand.Read(id[:])
+	return id
+}
+
+func messageID() (id state.MessageID) {
 	_, _ = rand.Read(id[:])
 	return id
 }

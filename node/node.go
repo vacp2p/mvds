@@ -608,7 +608,8 @@ func (n *Node) resolveEventually(sender state.PeerID, msg *protobuf.Message) {
 			continue
 		}
 
-		n.insertSyncState(nil, pid, sender, state.REQUEST)
+		group := state.ToGroupID(msg.GroupId)
+		n.insertSyncState(&group, pid, sender, state.REQUEST)
 	}
 
 	n.pushToSub(msg)
@@ -671,7 +672,8 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 			continue
 		}
 
-		n.insertSyncState(nil, pid, sender, state.REQUEST)
+		group := state.ToGroupID(msg.GroupId)
+		n.insertSyncState(&group, pid, sender, state.REQUEST)
 		hasUnresolvedDependencies = true
 
 		err := n.dependencies.Add(id, pid)
@@ -693,9 +695,11 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 
 func (n *Node) pushToSub(msg *protobuf.Message) {
 	if n.subscription == nil {
+		fmt.Println("fuck me")
 		return
 	}
 
+	fmt.Println("fuck y")
 	n.subscription <- *msg
 }
 
