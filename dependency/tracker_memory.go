@@ -40,7 +40,7 @@ func (md *inMemoryTracker) Dependants(id state.MessageID) ([]state.MessageID, er
 	return md.dependents[id], nil
 }
 
-func (md *inMemoryTracker) MarkResolved(msg state.MessageID, dependency state.MessageID) error {
+func (md *inMemoryTracker) Resolve(msg state.MessageID, dependency state.MessageID) error {
 	md.Lock()
 	defer md.Unlock()
 
@@ -57,11 +57,11 @@ func (md *inMemoryTracker) MarkResolved(msg state.MessageID, dependency state.Me
 	return nil
 }
 
-func (md *inMemoryTracker) HasUnresolvedDependencies(id state.MessageID) (bool, error) {
+func (md *inMemoryTracker) IsResolved(id state.MessageID) (bool, error) {
 	md.Lock()
 	defer md.Unlock()
 
-	return len(md.dependencies) > 0, nil
+	return len(md.dependencies) == 0, nil
 }
 
 func remove(s []state.MessageID, i int) []state.MessageID {

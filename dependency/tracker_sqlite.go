@@ -48,7 +48,7 @@ func (sd *sqliteTracker) Dependants(id state.MessageID) ([]state.MessageID, erro
 	return msgs, nil
 }
 
-func (sd *sqliteTracker) MarkResolved(msg state.MessageID, dependency state.MessageID) error {
+func (sd *sqliteTracker) Resolve(msg state.MessageID, dependency state.MessageID) error {
 	result, err := sd.db.Exec(
 		`DELETE FROM mvds_dependencies WHERE msg_id = ? AND dependency = ?`,
 		msg[:],
@@ -66,7 +66,7 @@ func (sd *sqliteTracker) MarkResolved(msg state.MessageID, dependency state.Mess
 	return nil
 }
 
-func (sd *sqliteTracker) HasUnresolvedDependencies(id state.MessageID) (bool, error) {
+func (sd *sqliteTracker) IsResolved(id state.MessageID) (bool, error) {
 	result := sd.db.QueryRow(`SELECT COUNT(*) FROM mvds_dependencies WHERE msg_id = ?`, id[:])
 	var num int64
 	err := result.Scan(&num)
@@ -74,6 +74,6 @@ func (sd *sqliteTracker) HasUnresolvedDependencies(id state.MessageID) (bool, er
 		return false, err
 	}
 
-	return num > 0, nil
+	return num == 0, nil
 }
 

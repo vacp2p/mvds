@@ -627,7 +627,7 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 	}
 
 	for _, dependant := range dependants {
-		err := n.dependencies.MarkResolved(dependant, id)
+		err := n.dependencies.Resolve(dependant, id)
 		if err != nil {
 			n.logger.Error("error marking resolved dependency",
 				zap.Error(err),
@@ -636,7 +636,7 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 			)
 		}
 
-		has, err := n.dependencies.HasUnresolvedDependencies(dependant)
+		resolved, err := n.dependencies.IsResolved(dependant)
 		if err != nil {
 			n.logger.Error("error getting unresolved dependencies",
 				zap.Error(err),
@@ -644,7 +644,7 @@ func (n *Node) resolveConsistently(sender state.PeerID, msg *protobuf.Message) {
 			)
 		}
 
-		if has {
+		if !resolved {
 			continue
 		}
 

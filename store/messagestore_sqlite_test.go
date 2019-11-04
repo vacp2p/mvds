@@ -99,12 +99,7 @@ func TestPersistentMessageStore_GetMessagesWithoutChildren(t *testing.T) {
 }
 
 
-func groupId() state.GroupID {
-	bytes := make([]byte, 32)
-	_, _ = rand.Read(bytes)
-
-	id := state.GroupID{}
-	copy(id[:], bytes)
-
+func groupId() (id state.GroupID) {
+	_, _ = rand.Read(id[:])
 	return id
 }

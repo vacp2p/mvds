@@ -46,7 +46,7 @@ func (p *persistentMessageStore) Add(message *protobuf.Message) error {
 
 	if message.Metadata != nil && len(message.Metadata.Parents) > 0 {
 		var sb strings.Builder
-		sb.WriteString("INSERT INTO mvds_parents(message, parent) VALUES ")
+		sb.WriteString("INSERT INTO mvds_parents(message_id, parent_id) VALUES ")
 		var vals []interface{}
 
 		for _, row := range message.Metadata.Parents {
@@ -87,7 +87,7 @@ func (p *persistentMessageStore) Get(id state.MessageID) (*protobuf.Message, err
 
 	message.Metadata = &protobuf.Metadata{Ephemeral: false}
 
-	rows, err := p.db.Query(`SELECT parent FROM mvds_parents WHERE message = ?`, id[:])
+	rows, err := p.db.Query(`SELECT parent_id FROM mvds_parents WHERE message = ?`, id[:])
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (p *persistentMessageStore) Has(id state.MessageID) (bool, error) {
 func (p *persistentMessageStore) GetMessagesWithoutChildren(id state.GroupID) ([]state.MessageID, error) {
 	var result []state.MessageID
 	rows, err := p.db.Query(
-		`SELECT id FROM mvds_messages WHERE group_id = ? AND id NOT IN (SELECT parent FROM mvds_parents)`,
+		`SELECT message_id FROM mvds_messages WHERE group_id = ? AND id NOT IN (SELECT parent_id FROM mvds_parents)`,
 		id[:],
 	)
 

@@ -152,22 +152,16 @@ func Calc(count uint64, epoch int64) int64 {
 	return epoch + int64(count*2)
 }
 
-func peerID() state.PeerID {
-	bytes := make([]byte, 65)
-	_, _ = rand.Read(bytes)
+func peerID() (id state.PeerID) {
+	_, _ = rand.Read(id[:])
+	return
+}
 
-	id := state.PeerID{}
-	copy(id[:], bytes)
 
+
+
+func groupId() (id state.GroupID) {
+	_, _ = rand.Read(id[:])
 	return id
 }
 
-func groupId() state.GroupID {
-	bytes := make([]byte, 32)
-	_, _ = rand.Read(bytes)
-
-	id := state.GroupID{}
-	copy(id[:], bytes)
-
-	return id
-}

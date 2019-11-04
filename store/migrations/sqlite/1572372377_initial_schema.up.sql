@@ -5,8 +5,11 @@ CREATE TABLE mvds_messages (
     body      BLOB    NOT NULL
 );
 
+CREATE INDEX idx_group_id ON mvds_messages(group_id);
+
+
 CREATE TABLE mvds_parents (
-    message BLOB NOT NULL,
-    parent  BLOB NOT NULL,
-    FOREIGN KEY (message) REFERENCES mvds_messages (id)
+    message_id BLOB NOT NULL,
+    parent_id  BLOB NOT NULL,
+    FOREIGN KEY (message_id) REFERENCES mvds_messages (id)
 )

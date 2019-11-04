@@ -29,14 +29,14 @@ func TestTrackerSQLitePersistence(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, msg, dependants[0])
 
-	res, err := d.HasUnresolvedDependencies(msg)
-	require.NoError(t, err)
-	require.True(t, res)
-
-	err = d.MarkResolved(msg, dependency)
-	require.NoError(t, err)
-
-	res, err = d.HasUnresolvedDependencies(msg)
+	res, err := d.IsResolved(msg)
 	require.NoError(t, err)
 	require.False(t, res)
+
+	err = d.Resolve(msg, dependency)
+	require.NoError(t, err)
+
+	res, err = d.IsResolved(msg)
+	require.NoError(t, err)
+	require.True(t, res)
 }
