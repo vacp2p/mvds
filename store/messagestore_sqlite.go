@@ -87,7 +87,7 @@ func (p *persistentMessageStore) Get(id state.MessageID) (*protobuf.Message, err
 
 	message.Metadata = &protobuf.Metadata{Ephemeral: false}
 
-	rows, err := p.db.Query(`SELECT parent_id FROM mvds_parents WHERE message = ?`, id[:])
+	rows, err := p.db.Query(`SELECT parent_id FROM mvds_parents WHERE message_id = ?`, id[:])
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (p *persistentMessageStore) Has(id state.MessageID) (bool, error) {
 func (p *persistentMessageStore) GetMessagesWithoutChildren(id state.GroupID) ([]state.MessageID, error) {
 	var result []state.MessageID
 	rows, err := p.db.Query(
-		`SELECT message_id FROM mvds_messages WHERE group_id = ? AND id NOT IN (SELECT parent_id FROM mvds_parents)`,
+		`SELECT id FROM mvds_messages WHERE group_id = ? AND id NOT IN (SELECT parent_id FROM mvds_parents)`,
 		id[:],
 	)
 

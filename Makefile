@@ -23,6 +23,10 @@ install-linter:
 	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.17.1
 .PHONY: install-linter
 
+mock:
+	mockgen -package=internal -destination=node/internal/syncstate_mock.go -source=state/state.go
+.PHONY: mock
+
 vendor:
 	go mod tidy
 	go mod vendor

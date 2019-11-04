@@ -98,7 +98,6 @@ func TestPersistentMessageStore_GetMessagesWithoutChildren(t *testing.T) {
 	}
 }
 
-
 func groupId() (id state.GroupID) {
 	_, _ = rand.Read(id[:])
 	return id
