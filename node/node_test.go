@@ -90,7 +90,7 @@ func TestNode_resolveConsistently(t *testing.T) {
 	}
 
 	// @todo we need to make sure to add the message cause we are going through a subset of the flow
-	node.store.Add(msg)
+	_ = node.store.Add(msg)
 
 	syncstate.EXPECT().Add(gomock.Any()).DoAndReturn(func(state.State) error {
 		return nil
