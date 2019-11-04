@@ -94,9 +94,8 @@ func (p *persistentMessageStore) Get(id state.MessageID) (*protobuf.Message, err
 
 	defer rows.Close()
 
-	var parent []byte
-
 	for rows.Next() {
+		var parent []byte
 		err := rows.Scan(&parent)
 		if err != nil {
 			return nil, err
@@ -142,9 +141,8 @@ func (p *persistentMessageStore) GetMessagesWithoutChildren(id state.GroupID) ([
 
 	defer rows.Close()
 
-	var parent []byte
-
 	for rows.Next() {
+		var parent []byte
 		err := rows.Scan(&parent)
 		if err != nil {
 			return nil, err

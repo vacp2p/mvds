@@ -49,17 +49,13 @@ func (sd *sqliteTracker) Dependants(id state.MessageID) ([]state.MessageID, erro
 }
 
 func (sd *sqliteTracker) Resolve(msg state.MessageID, dependency state.MessageID) error {
-	result, err := sd.db.Exec(
+	_, err := sd.db.Exec(
 		`DELETE FROM mvds_dependencies WHERE msg_id = ? AND dependency = ?`,
 		msg[:],
 		dependency[:],
 	)
 
 	if err != nil {
-		return err
-	}
-
-	if _, err := result.RowsAffected(); err != nil {
 		return err
 	}
 
