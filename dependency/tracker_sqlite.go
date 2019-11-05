@@ -55,7 +55,7 @@ func (sd *sqliteTracker) Resolve(msg state.MessageID, dependency state.MessageID
 		dependency[:],
 	)
 
-	if err != nil {
+	return err
 		return err
 	}
 
