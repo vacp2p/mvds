@@ -56,10 +56,6 @@ func (sd *sqliteTracker) Resolve(msg state.MessageID, dependency state.MessageID
 	)
 
 	return err
-		return err
-	}
-
-	return nil
 }
 
 func (sd *sqliteTracker) IsResolved(id state.MessageID) (bool, error) {
