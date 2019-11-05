@@ -10,4 +10,5 @@ type MessageStore interface {
 	Has(id state.MessageID) (bool, error)
 	Get(id state.MessageID) (*protobuf.Message, error)
 	Add(message *protobuf.Message) error
+	GetMessagesWithoutChildren(id state.GroupID) ([]state.MessageID, error)
 }

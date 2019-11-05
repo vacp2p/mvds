@@ -8,6 +8,7 @@ import (
 	math "math/rand"
 	"time"
 
+	"github.com/vacp2p/mvds/dependency"
 	"github.com/vacp2p/mvds/node"
 	"github.com/vacp2p/mvds/peers"
 	"github.com/vacp2p/mvds/state"
@@ -31,7 +32,7 @@ func parseFlags() {
 	flag.IntVar(&communicating, "communicating", 2, "amount of nodes sending messages")
 	flag.IntVar(&sharing, "sharing", 2, "amount of nodes each node shares with")
 	flag.Int64Var(&interval, "interval", 5, "seconds between messages")
-	flag.IntVar(&interactive, "interactive", 3, "amount of nodes to use INTERACTIVE mode, the rest will be BATCH") // @todo should probably just be how many nodes are interactive
+	flag.IntVar(&interactive, "interactive", 3, "amount of nodes to use InteractiveMode mode, the rest will be BatchMode") // @todo should probably just be how many nodes are interactive
 	flag.Parse()
 }
 
@@ -51,9 +52,9 @@ func main() {
 		input = append(input, in)
 		transports = append(transports, t)
 
-		mode := node.INTERACTIVE
+		mode := node.InteractiveMode
 		if i+1 >= interactive {
-			mode = node.BATCH
+			mode = node.BatchMode
 		}
 
 		node, err := createNode(t, peerID(), mode)
@@ -128,6 +129,8 @@ func createNode(transport transport.Transport, id state.PeerID, mode node.Mode) 
 		id,
 		mode,
 		peers.NewMemoryPersistence(),
+		dependency.NewInMemoryTracker(),
+		node.EventualMode,
 		logger,
 	), nil
 }
@@ -149,22 +152,16 @@ func Calc(count uint64, epoch int64) int64 {
 	return epoch + int64(count*2)
 }
 
-func peerID() state.PeerID {
-	bytes := make([]byte, 65)
-	_, _ = rand.Read(bytes)
+func peerID() (id state.PeerID) {
+	_, _ = rand.Read(id[:])
+	return
+}
 
-	id := state.PeerID{}
-	copy(id[:], bytes)
 
+
+
+func groupId() (id state.GroupID) {
+	_, _ = rand.Read(id[:])
 	return id
 }
 
-func groupId() state.GroupID {
-	bytes := make([]byte, 32)
-	_, _ = rand.Read(bytes)
-
-	id := state.GroupID{}
-	copy(id[:], bytes)
-
-	return id
-}

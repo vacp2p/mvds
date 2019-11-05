@@ -86,7 +86,7 @@ func _1565345162_initial_schemaDownSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "1565345162_initial_schema.down.sql", size: 23, mode: os.FileMode(0644), modTime: time.Unix(1565345447, 0)}
+	info := bindataFileInfo{name: "1565345162_initial_schema.down.sql", size: 23, mode: os.FileMode(0644), modTime: time.Unix(1569335635, 0)}
 	a := &asset{bytes: bytes, info: info, digest: [32]uint8{0x7c, 0x69, 0xd2, 0x3, 0xea, 0x82, 0x7c, 0xb3, 0x44, 0x6c, 0xef, 0x64, 0x2c, 0x99, 0x62, 0xa2, 0x8b, 0x6f, 0x96, 0x4f, 0x34, 0x41, 0x87, 0xd5, 0x4e, 0x3, 0x7f, 0x4a, 0xd1, 0x91, 0x9, 0x99}}
 	return a, nil
 }
@@ -106,7 +106,7 @@ func _1565345162_initial_schemaUpSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "1565345162_initial_schema.up.sql", size: 86, mode: os.FileMode(0644), modTime: time.Unix(1565345708, 0)}
+	info := bindataFileInfo{name: "1565345162_initial_schema.up.sql", size: 86, mode: os.FileMode(0644), modTime: time.Unix(1569335635, 0)}
 	a := &asset{bytes: bytes, info: info, digest: [32]uint8{0x78, 0x7c, 0xdd, 0x67, 0x61, 0x3e, 0x7f, 0xd4, 0xce, 0xb0, 0x17, 0xbe, 0x5a, 0xa7, 0x9e, 0x93, 0x34, 0xe8, 0xbb, 0x44, 0xfb, 0x88, 0xd6, 0x18, 0x6d, 0x9f, 0xb4, 0x22, 0xda, 0xbc, 0x87, 0x94}}
 	return a, nil
 }
@@ -126,7 +126,7 @@ func docGo() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "doc.go", size: 377, mode: os.FileMode(0644), modTime: time.Unix(1565345207, 0)}
+	info := bindataFileInfo{name: "doc.go", size: 377, mode: os.FileMode(0644), modTime: time.Unix(1569335635, 0)}
 	a := &asset{bytes: bytes, info: info, digest: [32]uint8{0xef, 0xaf, 0xdf, 0xcf, 0x65, 0xae, 0x19, 0xfc, 0x9d, 0x29, 0xc1, 0x91, 0xaf, 0xb5, 0xd5, 0xb1, 0x56, 0xf3, 0xee, 0xa8, 0xba, 0x13, 0x65, 0xdb, 0xab, 0xcf, 0x4e, 0xac, 0x92, 0xe9, 0x60, 0xf1}}
 	return a, nil
 }
@@ -223,10 +223,8 @@ func AssetNames() []string {
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
 	"1565345162_initial_schema.down.sql": _1565345162_initial_schemaDownSql,
-
-	"1565345162_initial_schema.up.sql": _1565345162_initial_schemaUpSql,
-
-	"doc.go": docGo,
+	"1565345162_initial_schema.up.sql":   _1565345162_initial_schemaUpSql,
+	"doc.go":                             docGo,
 }
 
 // AssetDir returns the file names below a certain

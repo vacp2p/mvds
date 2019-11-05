@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/golang-migrate/migrate/v4 v4.6.2 // indirect
+	github.com/golang/mock v1.2.0
 	github.com/golang/protobuf v1.3.2
 	github.com/mutecomm/go-sqlcipher v0.0.0-20190227152316-55dbde17881f // indirect
 	github.com/pkg/errors v0.8.1
