@@ -1,14 +1,16 @@
-module github.com/status-im/mvds
+module github.com/vacp2p/mvds
 
 go 1.12
 
 require (
-	github.com/btcsuite/btcd v0.0.0-20190427004231-96897255fd17 // indirect
-	github.com/ethereum/go-ethereum v1.8.27
-	github.com/golang/protobuf v1.3.1
-	github.com/kr/pretty v0.1.0 // indirect
+	github.com/golang-migrate/migrate/v4 v4.6.2 // indirect
+	github.com/golang/mock v1.2.0
+	github.com/golang/protobuf v1.3.2
+	github.com/mutecomm/go-sqlcipher v0.0.0-20190227152316-55dbde17881f // indirect
 	github.com/pkg/errors v0.8.1
-	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f // indirect
-	golang.org/x/tools v0.0.0-20190525145741-7be61e1b0e51
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	github.com/status-im/migrate/v4 v4.6.2-status.2
+	github.com/stretchr/testify v1.3.1-0.20190712000136-221dbe5ed467
+	go.uber.org/atomic v1.4.0 // indirect
+	go.uber.org/multierr v1.1.0 // indirect
+	go.uber.org/zap v1.10.0
 )

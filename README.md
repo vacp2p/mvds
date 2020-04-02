@@ -1,17 +1,38 @@
 # Minimal Viable Data Sync
 
-:warning: This code is not production ready, race conditions are likely to occur :warning:
+![Version](https://img.shields.io/github/tag/vacp2p/mvds.svg)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![API Reference](
+https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/68747470733a2f2f676f646f632e6f72672f6769746875622e636f6d2f676f6c616e672f6764646f3f7374617475732e737667
+)](https://godoc.org/github.com/vacp2p/mvds) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/vacp2p/mvds)](https://goreportcard.com/report/github.com/vacp2p/mvds)
+[![Build Status](https://travis-ci.com/vacp2p/mvds.svg?branch=master)](https://travis-ci.com/vacp2p/mvds)
 
-Experimental implementation of the [minimal viable data sync protocol specification](https://notes.status.im/bZHk_BNkSAe8-TY7DxdNEg?view).
+Experimental implementation of the [minimal viable data sync protocol specification](https://specs.vac.dev/mvds.html) including the [metadata format specification](https://specs.vac.dev/mdf.html).
 
-# Usage
+## Usage
 
-## Simulation
+Listening to MVDS messages is fairly simple:
+
+```go
+sub := node.Subscribe()
+
+for {
+    msg := <-sub
+    print(msg)
+}
+```
+
+### Prerequisites
+
+Ensure you have `protoc` (Protobuf) and Golang installed. Then run `make`.
+
+### Simulation
 
 In order to run a very naive simulation, use the simulation command. The simulation is configurable using various CLI flags.
 
 ```
-Usage of simulation/simulation.go:
+Usage of main.go:
   -communicating int
     	amount of nodes sending messages (default 2)
   -interactive int
@@ -26,6 +47,6 @@ Usage of simulation/simulation.go:
     	amount of nodes each node shares with (default 2)
 ```
 
-# License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details

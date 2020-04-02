@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package vac.mvds;
+option go_package = "protobuf";
+
+message Payload {
+  repeated bytes acks = 1;
+  repeated bytes offers = 2;
+  repeated bytes requests = 3;
+  repeated Message messages = 4;
+}
+
+message Metadata {
+  repeated bytes parents = 1;
+  bool ephemeral = 2;
+}
+
+message Message {
+  bytes group_id = 1;
+  int64 timestamp = 2;
+  bytes body = 3;
+  Metadata metadata = 4;
+}
