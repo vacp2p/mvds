@@ -8,11 +8,11 @@ import (
 
 type Packet struct {
 	Sender  state.PeerID
-	Payload protobuf.Payload
+	Payload *protobuf.Payload
 }
 
 // Transport defines an interface allowing for agnostic transport implementations.
 type Transport interface {
 	Watch() Packet
-	Send(sender state.PeerID, peer state.PeerID, payload protobuf.Payload) error
+	Send(sender state.PeerID, peer state.PeerID, payload *protobuf.Payload) error
 }

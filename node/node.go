@@ -381,7 +381,7 @@ func (n *Node) sendMessages() error {
 		return err
 	}
 
-	return n.payloads.MapAndClear(func(peer state.PeerID, payload protobuf.Payload) error {
+	return n.payloads.MapAndClear(func(peer state.PeerID, payload *protobuf.Payload) error {
 		err := n.transport.Send(n.ID, peer, payload)
 		if err != nil {
 			n.logger.Error("error sending message", zap.Error(err))
@@ -392,7 +392,7 @@ func (n *Node) sendMessages() error {
 
 }
 
-func (n *Node) onPayload(sender state.PeerID, payload protobuf.Payload) {
+func (n *Node) onPayload(sender state.PeerID, payload *protobuf.Payload) {
 	// Acks, Requests and Offers are all arrays of bytes as protobuf doesn't allow type aliases otherwise arrays of messageIDs would be nicer.
 	if err := n.onAck(sender, payload.Acks); err != nil {
 		n.logger.Error("error processing acks", zap.Error(err))
