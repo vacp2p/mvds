@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package vac.mvds;
-option go_package = "protobuf";
+option go_package = "./;protobuf";
 
 message Payload {
   repeated bytes acks = 1;
