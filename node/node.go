@@ -182,7 +182,7 @@ func (n *Node) Start(duration time.Duration) {
 				n.logger.Info("Epoch processing stopped")
 				return
 			default:
-				n.logger.Debug("Epoch processing", zap.String("node", hex.EncodeToString(n.ID[:4])), zap.Int64("epoch", n.epoch))
+				n.logger.Trace("Epoch processing", zap.String("node", hex.EncodeToString(n.ID[:4])), zap.Int64("epoch", n.epoch))
 				time.Sleep(duration)
 				err := n.sendMessages()
 				if err != nil {
